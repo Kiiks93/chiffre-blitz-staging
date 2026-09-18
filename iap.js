@@ -3,7 +3,7 @@
    VERSION FINALE NETTOYÉE — remplacer le fichier entier
 ============================================================ */
 const RC_API_KEY = 'goog_XFlNDHkJppdgUrBvKgMQilmCiaR';
-const IAP_SERVER_URL = 'https://chiffre-blitz-server.onrender.com';
+const IAP_SERVER_URL = location.hostname.endsWith(".onrender.com") ? location.origin : "https://chiffre-blitz-server.onrender.com";
 
 const IAP = {
   ready: false,
