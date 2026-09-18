@@ -335,7 +335,9 @@ setInterval(() => {
   if (changed) io.emit("events_state_update", globalEvents);
 }, 5000);
 
-app.get('/', (req, res) => { res.send('Chiffre Blitz Server is running ⚡'); });
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // AJOUTE CES LIGNES :
 const path = require('path');
