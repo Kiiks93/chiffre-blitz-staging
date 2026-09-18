@@ -444,13 +444,20 @@ function showToast(message, type = 'info', duration = 3500) {
 /* ============================================================
 CONNEXION SOCKET.IO
 ============================================================ */
-const ADMIN_PANEL_URL = (location.hostname.endsWith('.onrender.com') || location.hostname === 'localhost')
-    ? location.origin + '/admin.html'
-    : 'https://chiffre-blitz-server.onrender.com/admin.html';"https://chiffre-blitz-server.onrender.com";
+
+// 1. Détection automatique de l'URL du serveur (Local vs Production)
+const SERVER_URL = (location.hostname.endsWith('.onrender.com') || location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? location.origin
+    : 'https://chiffre-blitz-server.onrender.com';
+
+// 2. URL du panel admin (déduite du serveur)
+const ADMIN_PANEL_URL = SERVER_URL + '/admin.html';
+
 let socket = null;
 let isAdminLoggedIn = false;
 
 function connectSocket() {
+    // 3. Connexion à Socket.IO avec l'URL corrigée
     socket = io(SERVER_URL, {
         reconnection: true,
         reconnectionAttempts: 10,
