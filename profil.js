@@ -6,7 +6,9 @@ PROFIL.JS — GESTION PROFIL, COMPTE & PERSONNALISATION
 1. CONSTANTES
 ============================================================ */
 const CONFIG = {
-SERVER_URL: location.hostname.endsWith(".onrender.com") ? location.origin : "https://chiffre-blitz-server.onrender.com",
+SERVER_URL: window.location.hostname.endsWith('.onrender.com') 
+    ? window.location.origin 
+    : 'https://chiffre-blitz-server.onrender.com',
   MIN_PSEUDO_LENGTH: 3,
   MIN_CODE_LENGTH: 8,
   MAX_AVATAR_NUM: 999,
