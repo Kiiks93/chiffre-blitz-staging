@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#051525">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chiffre Blitz ⚡</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="saisons.css">
+    <style>
+/* Écran titre : tout visible sans scroll interne */
+#screen-title h2{ font-size:22px; }
+#screen-title .btn-main{ padding:12px; font-size:15px; margin-top:10px; }
+#title-rules{ padding:8px; gap:5px; font-size:10.5px; }
+#title-rules p{ margin:1px 0 0 0; font-size:10px; }
+@media (max-height:780px){
+  #title-rules{ padding:6px; gap:4px; font-size:9.5px; }
+  #title-rules p{ font-size:9px; }
+  #screen-title h2{ font-size:19px; }
+}
+@media (max-height:640px){
+  #title-rules{ padding:5px; gap:3px; font-size:9px; }
+  #title-rules p{ font-size:8.5px; }
+  #screen-title h2{ font-size:17px; }
+  #screen-title .btn-main{ padding:9px; font-size:13px; margin-top:6px; }
+}
+/* Perf mobile : modales fluides (supprime le flou d'arrière-plan coûteux) */
+@media (max-width:760px){
+  .modal-overlay{ backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+}
+</style>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+</head>
+<body>
+
+<!-- ============================================================
+HEADER (logo + user-pill + boutons)
+============================================================ -->
+<div class="header-bar">
+    <h1>Chiffre Blitz ⚡</h1>
+    <div id="user-pill" class="user-pill" onclick="promptProfileChange()">
+        <div id="user-avatar-badge"></div>
+        <div style="display: flex; flex-direction: column; overflow: hidden; text-align: left;">
+            <span id="user-name-display">Définir pseudo</span>
+            <span id="user-title-display" style="font-size: 8px; color: #f8b500; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></span>
+        </div>
+    </div>
+    <div class="header-btns">
+        <button onclick="openFriendsModal()" class="icon-btn" style="padding: 0 10px; position: relative;" title="Amis">
+            <span data-i18n="friends_btn">Amis</span>
+            <span id="friends-main-badge" style="display:none; position: absolute; top: -4px; right: -4px; background: #ff4b2b; color: #fff; border-radius: 50%; padding: 1px 5px; font-size: 9px; font-weight: bold;">0</span>
+        </button>
+        <button id="lang-btn" class="icon-btn" onclick="toggleLanguage(); renderControlCenter();">ENG</button>
+        <button id="mute-btn" class="icon-btn" onclick="toggleMute()">🔊</button>
+        <button id="control-center-btn" class="icon-btn" onclick="openControlCenter()" style="padding: 0 10px;">⚙️ <span id="cc-btn-label">Paramètres</span></button>
+    </div>
+</div>
+
+<!-- ============================================================
+BARRE D'ÉCONOMIE (pièces, trophées, rang, compteur en ligne)
+============================================================ -->
+<div class="user-stats">
+    <span>🪙 <strong id="user-coins-display">0</strong></span>
+    <span>👑 <strong id="user-trophies-display">0</strong></span>
+    <span>🏅 <strong id="user-rank-display" style="color:#00d2ff;">Novice</strong> (<span id="user-points-display">0</span> pts)</span>
+    <span class="online-stat">👤 <strong id="online-count-display">0</strong></span>
+</div>
+
+<!-- ============================================================
+PUB DE LANCEMENT (fake, soutien créateur)
+============================================================ -->
+<div id="modal-launch-ad" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="text-align:center;">
+        <h2 style="margin:0 0 10px 0; color:#00d2ff;" data-i18n="ad_title">Soutenir le Créateur</h2>
+        <p style="color:#ccc; font-size:13px; line-height:1.4; margin-bottom:15px;" data-i18n="ad_desc">Chiffre Blitz est gratuit à jouer (achats optionnels). Une publicité de soutien va se lancer. Merci ! ❤️</p>
+        <button class="btn-main btn-blue" onclick="playLaunchAd()" style="width:100%;" data-i18n="ad_btn">Lancer la partie ⚡</button>
+    </div>
+</div>
+
+<div id="simulated-ad-overlay" style="display:none;" class="modal-overlay">
+    <div class="modal-card" style="text-align:center; align-items:center;">
+        <div style="color:#aaa; font-size:15px; margin-bottom:15px; font-weight:bold;" data-i18n="ad_sponsored">VIDÉO SPONSORISÉE...</div>
+        <div class="ad-timer-circle" id="ad-timer">5</div>
+        <button id="ad-close-btn" class="btn-secondary" style="display:none; max-width:180px;" onclick="closeSimulatedAd()" data-i18n="close">Fermer</button>
+    </div>
+</div>
+
+<!-- ============================================================
+ÉCRAN TITRE (règles + bouton JOUER)
+============================================================ -->
+<div id="screen-title" class="menu-container" style="max-width:380px; text-align: left;">
+    <div style="text-align: center; margin-bottom: 10px;">
+        <h2 style="color: #00d2ff; margin: 0; text-shadow: 0 0 15px rgba(0,210,255,0.5);">CHIFFRE BLITZ ⚡</h2>
+        <p style="color: #aaa; font-size: 11px; margin: 4px 0 0 0;" data-i18n="subtitle">Repère. Clique. Triomphe.</p>
+    </div>
+
+    <div id="title-rules" style="background: rgba(30,16,53,0.7); border: 2px solid rgba(0,210,255,0.25); border-radius: 14px; color: #ccc; display: flex; flex-direction: column;">
+    <div style="display:flex; gap:6px; align-items:start;">
+    <span style="font-size:14px;">⚡</span>
+    <div><strong style="color:#00d2ff;" data-i18n="rule1_title">⚡ Principe du jeu</strong><p style="margin:2px 0 0 0;" data-i18n="rule1_desc">Clique le plus vite possible sur les tuiles de la grille dans l'ordre croissant exact.</p></div>
+    </div>
+    <div style="display:flex; gap:6px; align-items:start; background:rgba(248,181,0,0.15); border:2px solid #f8b500; border-radius:10px; padding:8px; position:relative;">
+    <span style="position:absolute; top:-8px; right:8px; background:linear-gradient(45deg,#f8b500,#ff416c); color:#fff; font-size:9px; font-weight:900; padding:3px 8px; border-radius:6px;">MODE PHARE ⭐</span>
+    <span style="font-size:14px;">🏰</span>
+    <div><strong style="color:#f8b500;" data-i18n="rule_tower_title">🏰 Mode Aventure</strong><p style="margin:2px 0 0 0;" data-i18n="rule_tower_desc">Progression à travers 9 mondes thématiques : complète 200 niveaux par monde, affronte les Gardiens tous les 50 niveaux, et débloque des récompenses exclusives !</p></div>
+    </div>
+        <div style="display:flex; gap:6px; align-items:start;">
+            <span style="font-size:14px;">🏋️</span>
+            <div><strong style="color:#ff4b2b;" data-i18n="rule2_title">🏋️ Entraînement Solo</strong><p style="margin:2px 0 0 0;" data-i18n="rule2_desc">Modes Classique, Aléatoire ou Avalanche pour gagner des pièces (🪙).</p></div>
+        </div>
+        <div style="display:flex; gap:6px; align-items:start;">
+            <span style="font-size:14px;">⚔️</span>
+            <div><strong style="color:#00c6ff;" data-i18n="rule3_title">⚔️ Duel 1v1 Online</strong><p style="margin:2px 0 0 0;" data-i18n="rule3_desc">Affronte un adversaire en temps réel (matchmaking, classé SBMM, salons privés).</p></div>
+        </div>
+        <div style="display:flex; gap:6px; align-items:start;">
+            <span style="font-size:14px;">👑</span>
+            <div><strong style="color:#f8b500;" data-i18n="rule4_title">👑 Rangs & Trophées</strong><p style="margin:2px 0 0 0;" data-i18n="rule4_desc">Grimpe en classé et débloque les 16 trophées de ta Salle des Trophées !</p></div>
+        </div>
+        <div style="display:flex; gap:6px; align-items:start;">
+            <span style="font-size:14px;">🎯</span>
+            <div><strong style="color:#ff00c8;" data-i18n="rule5_title">🎯 Mode Tournoi</strong><p style="margin:2px 0 0 0;" data-i18n="rule5_desc">Bientôt disponible !</p></div>
+        </div>
+    </div>
+
+    <button class="btn-main btn-blue" onclick="openSupportModal()" style="width: 100%;" data-i18n="btn_play">JOUER ⚡</button>
+</div>
+
+<!-- ============================================================
+MENU PRINCIPAL (après connexion) - version PC
+============================================================ -->
+<div id="screen-menu" class="menu-container" style="display:none; max-width: 380px;">
+    <button onclick="enterTrophyRoom()" class="btn-trophy-room">
+        <span class="trophy-room-icon">🏛️</span>
+        <span class="trophy-room-label">SALLE DES TROPHÉES</span>
+        <span class="trophy-room-shine"></span>
+    </button>
+
+    <div id="player-event-banner" class="event-banner"></div>
+
+    <div onclick="openBlitzPass()" style="background: linear-gradient(135deg, rgba(248,181,0,0.18), rgba(255,65,108,0.18)); border: 2px solid #f8b500; border-radius: 14px; padding: 10px 14px; cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 24px;">🎫</span>
+            <div style="text-align: left;">
+                <div id="pass-menu-title" style="font-size: 12px; font-weight: 900; color: #f8b500;">PASSE DE SAISON</div>
+                <div id="pass-menu-sub" style="font-size: 9px; color: #ddd;">Récompenses 🌟</div>
+            </div>
+        </div>
+        <span style="font-size: 10px; background: linear-gradient(45deg, #f8b500, #ff416c); color: #fff; font-weight: 900; padding: 5px 10px; border-radius: 8px;">Voir ⚡</span>
+    </div>
+    <button class="btn-main btn-tower" onclick="openTower()">🗺️ AVENTURE</button>
+    <button class="btn-main btn-purple" onclick="openSoloMenu()" data-i18n="menu_solo">🏋️ ENTRAÎNEMENT SOLO</button>
+    <button class="btn-main btn-blue" onclick="open1v1Hub()" data-i18n="menu_1v1">⚔️ DUEL 1v1 ONLINE</button>
+    <button id="btn-tow-menu" class="btn-main" onclick="startTugOfWarQueue()" style="display:none; background:linear-gradient(45deg, #ff007f, #ff8a00);" data-i18n="menu_tow">🪢 Mode Corde Raide (Tug-of-War)</button>
+    <button id="btn-halloween-menu" class="btn-main" onclick="startHalloweenQueue()" style="display:none; background:linear-gradient(45deg, #ff8a00, #7b2ff7);" data-i18n="menu_halloween">🎃 Mode Exclusif Halloween</button>
+    <button id="btn-noel-menu" class="btn-main" onclick="startNoelQueue()" style="display:none; background:linear-gradient(45deg, #ff4b2b, #38ef7d);" data-i18n="menu_noel">🎄 Mode Exclusif Noël</button>
+    <button class="btn-main btn-shop" onclick="openRoomsScreen()" data-i18n="menu_friends">👥 SALONS & AMIS</button>
+    <button class="btn-main btn-shop" onclick="openShop()" data-i18n="menu_shop">🛍️ BOUTIQUE</button>
+    <button class="btn-main btn-gold" onclick="openLeaderboard()" data-i18n="menu_lb">👑 CLASSEMENT</button>
+    <button class="btn-main" onclick="openTournamentScreen()" style="background:linear-gradient(45deg, #3a1c71, #d76d77);" data-i18n="menu_tourney">🎯 TOURNOIS</button>
+    <button class="btn-secondary" onclick="showTitleScreen()" data-i18n="menu_info">ℹ️ Informations & Règles</button>
+</div>
+
+<!-- ============================================================
+MENU MOBILE (grille compacte + dock glassmorphism)
+Affiché uniquement sur mobile (<760px) via CSS
+EN DEHORS de #screen-menu pour ne pas être masqué avec lui
+============================================================ -->
+<div id="screen-menu-mobile" class="menu-mobile" style="display:none;">
+    <button id="admire-btn" class="admire-btn" onclick="toggleAdmireMode()">
+        <span id="admire-icon">👁️</span>
+        <span id="admire-text">Admirer</span>
+    </button>
+    <div id="mode-wheel-center" onclick="launchCenterMode()">
+        <div id="mode-wheel-frame">
+            <span id="mode-wheel-icon">🗺️</span>
+            <span id="mode-wheel-name">Aventure</span>
+        </div>
+    </div>
+    <div id="mode-wheel-halo"></div>
+    <div id="mode-wheel"></div>
+    <div class="mobile-dock">
+        <button class="dock-item" onclick="enterTrophyRoom()"><span class="dock-icon">🏛️</span><span class="dock-label">Trophées</span></button>
+        <button class="dock-item" onclick="openBlitzPass()"><span class="dock-icon">🎫</span><span class="dock-label">Passe de saison</span></button>
+        <button class="dock-item" onclick="openShop()"><span class="dock-icon">🛍️</span><span class="dock-label">Boutique</span></button>
+        <button class="dock-item" onclick="openLeaderboard()"><span class="dock-icon">👑</span><span class="dock-label">Classement</span></button>
+        <button class="dock-item" onclick="openRoomsScreen()"><span class="dock-icon">👥</span><span class="dock-label">Amis</span></button>
+        <button class="dock-item" onclick="openTournamentScreen()"><span class="dock-icon">🎯</span><span class="dock-label">Tournois</span></button>
+    </div>
+</div>
+<!-- ============================================================
+MENUS SOLO (entraînement)
+============================================================ -->
+<div id="screen-solo-menu" class="menu-container" style="display:none;">
+    <h2 style="color:#00d2ff; font-size:16px; margin-bottom:4px;" data-i18n="solo_menu_title">MODES D'ENTRAÎNEMENT</h2>
+    <button class="btn-main btn-blue" onclick="startSoloTraining('classic')" data-i18n="solo_classic">⚡ Classique (Croissant)</button>
+    <button class="btn-main btn-gold" onclick="startSoloTraining('random')" data-i18n="solo_random">🎲 Aléatoire (Cibles variées)</button>
+    <button class="btn-main btn-avalanche-main" onclick="openAvalancheDifficulties()" data-i18n="solo_avalanche_btn">🧊 Avalanche (Difficultés)</button>
+    <button class="btn-secondary" onclick="showMainMenu()" data-i18n="back_menu">⬅️ Retour Menu</button>
+</div>
+
+<div id="screen-avalanche-menu" class="menu-container" style="display:none;">
+    <h2 style="color:#00d2ff; font-size:16px; margin-bottom:4px;" data-i18n="avalanche_menu_title">🧊 AVALANCHE (Difficultés)</h2>
+    <button class="btn-main btn-avalanche-easy" onclick="startAvalancheGame(1100, 4)" data-i18n="diff_easy">Facile</button>
+    <button class="btn-main btn-avalanche-medium" onclick="startAvalancheGame(750, 3)" data-i18n="diff_medium">Moyen</button>
+    <button class="btn-main btn-avalanche-hard" onclick="startAvalancheGame(450, 4)" data-i18n="diff_hard">Difficile 💀</button>
+    <button class="btn-secondary" onclick="openSoloMenu()" data-i18n="back">⬅️ Retour</button>
+</div>
+
+<!-- ============================================================
+MENUS 1v1 (hub + loadout classé + lobby)
+============================================================ -->
+<div id="screen-1v1-hub" style="display:none;" class="menu-container">
+    <h2 data-i18n="hub_title" style="font-size: 16px; margin-bottom: 4px;">⚔️ DUEL 1v1 ONLINE</h2>
+    <p style="color:#aaa; font-size:11px; margin-bottom:6px;" data-i18n="hub_subtitle">Choisis ton mode de jeu :</p>
+    <button class="btn-main btn-blue" onclick="startRandom1v1()" data-i18n="hub_random">🎲 Matchmaking non classé</button>
+    <button class="btn-main btn-gold" onclick="openRankedLoadoutModal()" data-i18n="hub_ranked">⚔️ Matchmaking Classé (SBMM)</button>
+    <button class="btn-secondary" onclick="showMainMenu()" data-i18n="back_menu">⬅️ Retour Menu</button>
+</div>
+
+<div id="modal-ranked-loadout" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+        <h2 style="margin:0 0 6px 0; color:#f8b500; font-size:16px;" data-i18n="ranked_modal_title">⚔️ PRÉPARATION CLASSÉE</h2>
+        <p style="color:#aaa; font-size:11px; margin-bottom:8px;" data-i18n="ranked_modal_sub">Choisis 2 objets de ton inventaire :</p>
+        <div id="ranked-items-container" class="shop-grid" style="max-height: 45vh;"></div>
+        <div style="margin-top: 10px; display: flex; gap: 6px;">
+            <button class="btn-secondary" onclick="closeRankedLoadoutModal()" style="margin-top:0;" data-i18n="cancel">Annuler</button>
+            <button class="btn-main btn-gold" onclick="startRankedMatch()" style="margin-top:0; flex:1;" data-i18n="ranked_start_btn">Lancer ⚡</button>
+        </div>
+    </div>
+</div>
+
+<div id="screen-1v1-lobby" style="display:none;">
+    <div class="matchmaking-loader">
+        <div class="radar-box">
+            <div class="radar-ring"></div>
+            <div id="radar-digit" class="radar-num">1</div>
+        </div>
+        <div style="margin-top:12px; font-size:14px; font-weight:bold; color:#00d2ff;" data-i18n="searching">Recherche d'adversaire...</div>
+    </div>
+    <button class="btn-secondary" onclick="cancel1v1Search()" style="max-width:160px; margin:20px auto 0 auto;" data-i18n="cancel">❌ Annuler</button>
+</div>
+
+<!-- ============================================================
+SALONS PRIVÉS (liste + join + create + waiting)
+============================================================ -->
+<div id="screen-rooms" style="display:none;" class="menu-container">
+    <h2 data-i18n="rooms_title" style="font-size:16px; margin-bottom:6px;">👥 Jouer entre amis</h2>
+    <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:12px; margin:6px 0; display:flex; flex-direction:column; gap:6px;">
+        <button class="btn-main btn-blue" onclick="openCreateRoomModal()" style="width:100%; margin-top:0;" data-i18n="rooms_create">✨ Créer un salon personnalisé</button>
+        <button class="btn-main btn-gold" onclick="openJoinCustomScreen()" style="width:100%; margin-top:0;" data-i18n="rooms_join_code">🔑 Rejoindre avec un code</button>
+    </div>
+    <h3 style="font-size:12px; text-align:left; color:#aaa; margin-top:6px;" data-i18n="rooms_open_list">Salons ouverts :</h3>
+    <div id="rooms-list" class="rooms-list" style="max-height: 28vh; margin-bottom:8px;">
+        <div style="text-align:center; color:#aaa; margin-top:8px;" data-i18n="loading">Chargement...</div>
+    </div>
+    <button class="btn-secondary" onclick="showMainMenu()" data-i18n="back_menu">⬅️ Retour Menu</button>
+</div>
+
+<div id="screen-join-custom" style="display:none;" class="menu-container">
+    <h2 data-i18n="join_title" style="font-size:16px;">🔑 Rejoindre un Salon</h2>
+    <p style="color:#aaa; font-size:11px; margin-bottom:6px;" data-i18n="join_subtitle">Entre le code et le mot de passe :</p>
+    <input type="text" id="join-room-code-input" placeholder="CODE DU SALON" maxlength="10" style="width:100%; padding:9px; border-radius:8px; border:2px solid #00d2ff; background:#0f051d; color:#fff; font-size:14px; font-weight:bold; text-align:center; margin-bottom:8px; outline:none; text-transform: uppercase;">
+    <input type="text" id="join-room-pass-input" placeholder="MOT DE PASSE (Optionnel)" maxlength="15" style="width:100%; padding:9px; border-radius:8px; border:2px solid #00d2ff; background:#0f051d; color:#fff; font-size:14px; font-weight:bold; text-align:center; margin-bottom:10px; outline:none;">
+    <button class="btn-main btn-blue" onclick="submitJoinCustomRoom()" data-i18n="join_btn" style="margin-top:0;">Rejoindre ⚡</button>
+    <button class="btn-secondary" onclick="openRoomsScreen()" data-i18n="back">⬅️ Retour</button>
+</div>
+
+<div id="screen-room-waiting" style="display:none;" class="menu-container">
+    <h2 style="font-size:16px;">⚡ <span data-i18n="room_header">Salon</span> : <span id="current-room-code" style="color:#00d2ff;">----</span></h2>
+    <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:12px; margin:8px 0;">
+        <div style="margin-bottom: 10px; text-align: left;">
+            <label style="font-size: 10px; color: #aaa; font-weight: bold;" data-i18n="share_label">INVITATION RAPIDE :</label>
+            <div style="display: flex; gap: 6px; margin-top: 4px;">
+            <button class="btn-main btn-blue" onclick="shareRoomLink()" style="flex:1; padding:6px; font-size:12px; margin-top:0;" data-i18n="share_btn">📤 Partager le lien</button>
+            </div>
+            <input type="text" id="room-share-link" style="position: absolute; left: -9999px;" readonly>
+        </div>
+        <p style="color:#aaa; font-size:12px; margin-bottom:6px;" data-i18n="players_in_room">Joueurs :</p>
+        <div id="room-players-list" style="font-weight:bold; font-size:14px; color:#00ff88; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">En attente...</div>
+        <div class="emote-bar" style="margin: 6px auto;">
+            <!-- Boutons reconstruits par fixEmoteBars() dans profil.js -->
+        </div>
+    </div>
+    <button class="btn-secondary" onclick="leaveCustomRoom()" data-i18n="leave_room">❌ Quitter le salon</button>
+</div>
+
+<div id="modal-create-room" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="text-align:center;">
+        <h2 style="margin:0 0 6px 0; color:#00d2ff; font-size:16px;" data-i18n="create_modal_title">✨ CRÉER UN SALON</h2>
+        <input type="text" id="custom-room-name" placeholder="NOM DU SALON" maxlength="10" style="width:100%; padding:9px; border-radius:8px; border:2px solid #00d2ff; background:#0f051d; color:#fff; font-size:14px; font-weight:bold; text-align:center; margin-bottom:8px; outline:none; text-transform: uppercase;">
+        <input type="text" id="custom-room-pass" placeholder="MOT DE PASSE (Optionnel)" maxlength="15" style="width:100%; padding:9px; border-radius:8px; border:2px solid #00d2ff; background:#0f051d; color:#fff; font-size:14px; font-weight:bold; text-align:center; margin-bottom:10px; outline:none;">
+        <div style="display:flex; gap:6px;">
+            <button class="btn-secondary" onclick="closeCreateRoomModal()" style="margin-top:0;" data-i18n="cancel">Annuler</button>
+            <button class="btn-main btn-blue" onclick="submitCreateRoom()" style="margin-top:0; flex:1;" data-i18n="create_btn">Créer ⚡</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+SOCIAL (amis + tournoi teaser)
+============================================================ -->
+<div id="modal-friends" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width: 390px; max-height: 80vh;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h2 style="margin:0; color:#00d2ff; font-size:16px;" data-i18n="friends_title">👥 Centre d'Amis</h2>
+            <button class="icon-btn" onclick="closeFriendsModal()" style="width:28px; height:28px;">✕</button>
+        </div>
+        <div style="background:rgba(0,0,0,0.2); border:1px solid rgba(0,210,255,0.2); padding:8px; border-radius:10px; margin-bottom:10px; display:flex; gap:6px;">
+            <input type="text" id="input-add-friend" placeholder="Pseudo exact..." maxlength="15" style="flex:1; padding:8px; border-radius:8px; border:1px solid #00d2ff; background:#0f051d; color:#fff; font-size:12px; outline:none;">
+            <button class="btn-main btn-blue" onclick="sendFriendRequest()" style="padding:8px 12px; font-size:11px; margin-top:0; width:auto;" data-i18n="add_btn">Ajouter</button>
+        </div>
+        <div class="tabs" style="margin-bottom:8px;">
+            <button id="friend-tab-all" class="tab-btn active" onclick="switchFriendTab('all')" data-i18n="friends_btn">Amis</button>
+            <button id="friend-tab-requests" class="tab-btn" onclick="switchFriendTab('requests')" data-i18n="friends_tab_requests">Demandes <span id="badge-requests" style="background:#ff4b2b; color:#fff; border-radius:8px; padding:1px 4px; font-size:9px; display:none;">0</span></button>
+            <button id="friend-tab-invites" class="tab-btn" onclick="switchFriendTab('invites')" data-i18n="friends_tab_invites">Invitations <span id="badge-invites" style="background:#ff4b2b; color:#fff; border-radius:8px; padding:1px 4px; font-size:9px; display:none;">0</span></button>
+        </div>
+        <div id="friends-list-container" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:6px; max-height: 40vh;"></div>
+        <button class="btn-secondary" onclick="closeFriendsModal()" data-i18n="close">Fermer</button>
+    </div>
+</div>
+
+<div id="screen-tournament" style="display:none;" class="menu-container">
+    <h2 data-i18n="tourney_screen_title" style="color:#00d2ff; font-size:16px;">🎯 Tournoi Blitz</h2>
+    <div style="background:rgba(255,255,255,0.04); padding:16px; border-radius:12px; margin:8px 0; text-align:center;">
+        <div style="font-size:30px; margin-bottom:8px;">🚀</div>
+        <h3 style="color:#f8b500; margin:0 0 6px 0; font-size:14px;" data-i18n="tourney_teaser_title">Bientôt disponible !</h3>
+        <p style="color:#aaa; font-size:11px; margin:0;" data-i18n="tourney_teaser_desc">En cours de réflexion et de développement...</p>
+    </div>
+    <button class="btn-secondary" onclick="showMainMenu()" data-i18n="back">⬅️ Retour Menu</button>
+</div>
+
+<!-- ============================================================
+PARAMÈTRES & PROFIL
+============================================================ -->
+<div id="modal-control-center" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:340px; text-align:center;">
+        <h3 id="cc-title" style="color:#00d2ff; margin:0 0 10px 0;">⚙️ GESTION DES PARAMÈTRES</h3>
+        <button class="btn-main btn-blue" onclick="toggleLanguage(); renderControlCenter();" style="margin-bottom:6px;">🌐 <span id="cc-lang-text">Langue : FR</span></button>
+        <button class="btn-main btn-gold" onclick="toggleMute(); renderControlCenter();" style="margin-bottom:6px;">🔊 <span id="cc-sound-text">Son : Activé</span></button>
+        <button class="btn-main btn-blue" onclick="openMusicChooser()" style="margin-bottom:6px;">🎵 <span id="cc-music-text">Bande son : Auto</span></button>
+        <button id="cc-custom-btn" class="btn-main btn-shop" onclick="closeControlCenter(); promptProfileChange();" style="margin-bottom:6px;">🎨 Personnalisation</button>
+        <button id="cc-account-btn" class="btn-main" onclick="closeControlCenter(); openAccountModal();" style="margin-bottom:6px;">👤 Gestion du compte</button>
+        <button class="btn-secondary" onclick="closeControlCenter()" data-i18n="close">Fermer</button>
+    </div>
+</div>
+
+<div id="modal-username" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="text-align:center; max-width: 380px;">
+        <div id="modal-avatar-preview"></div>
+        <h2 style="margin:2px 0; color:#00d2ff; font-size:16px;" data-i18n="welcome_title">⚡ IDENTITÉ BLITZ ⚡</h2>
+        <p style="color:#aaa; font-size:10px; margin-bottom:8px;" data-i18n="welcome_sub">Personnalise ton profil :</p>
+        <input type="text" id="username-input" placeholder="PSEUDO" maxlength="15" style="width:100%; padding:8px; border-radius:8px; border:2px solid #00d2ff; background:#0f051d; color:#fff; font-size:13px; font-weight:bold; text-align:center; margin-bottom:6px; outline:none;">
+        <select id="title-input" style="width:100%; padding:8px; border-radius:8px; border:2px solid #f8b500; background:#0f051d; color:#f8b500; font-size:12px; font-weight:bold; margin-bottom:6px; outline:none;">
+            <option value="">Aucun titre actif</option>
+        </select>
+        <select id="frame-input" style="width:100%; padding:8px; border-radius:8px; border:2px solid #f8b500; background:#0f051d; color:#f8b500; font-size:12px; font-weight:bold; margin-bottom:6px; outline:none;">
+            <option value="">Aucun cadre (Défaut)</option>
+        </select>
+        <select id="theme-input" style="width:100%; padding:8px; border-radius:8px; border:2px solid #f8b500; background:#0f051d; color:#f8b500; font-size:12px; font-weight:bold; margin-bottom:6px; outline:none;">
+            <option value="">Thème de grille standard</option>
+        </select>
+        <div id="profile-avatar-selector" style="display: flex; gap: 6px; overflow-x: auto; margin-bottom: 6px;"></div>
+        <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+            <input type="number" id="avatar-input" min="1" max="999" value="1" oninput="updateProfilePreview()" placeholder="AVATAR (1-999)" style="flex:1; padding:8px; border-radius:8px; border:2px solid #00d2ff; background:#0f051d; color:#fff; font-size:13px; font-weight:bold; text-align:center; outline:none;">
+            <select id="flag-input" onchange="updateProfilePreview()" style="flex:1; padding:8px; border-radius:8px; border:2px solid #00d2ff; background:#0f051d; color:#fff; font-size:12px; font-weight:bold; outline:none;">
+                <option value="🇫🇷">🇫🇷 France</option>
+                <option value="🇧🇪">🇧🇪 Belgique</option>
+                <option value="🇨🇦">🇨🇦 Canada</option>
+                <option value="🇨🇭">🇨🇭 Suisse</option>
+                <option value="🇪🇸">🇪🇸 Espagne</option>
+                <option value="🇮🇹">🇮🇹 Italie</option>
+                <option value="🇩🇪">🇩🇪 Allemagne</option>
+                <option value="🇬🇧">🇬🇧 UK</option>
+                <option value="🇲🇦">🇲🇦 Maroc</option>
+                <option value="🇩🇿">🇩🇿 Algérie</option>
+                <option value="🇹🇳">🇹🇳 Tunisie</option>
+                <option value="🌍">🌍 Autre</option>
+            </select>
+        </div>
+        <select id="region-input" style="width:100%; padding:8px; border-radius:8px; border:2px solid #00d2ff; background:#0f051d; color:#fff; font-size:12px; font-weight:bold; margin-bottom:10px; outline:none;">
+            <option value="Hauts-de-France">Hauts-de-France</option>
+            <option value="Île-de-France">Île-de-France</option>
+            <option value="Auvergne-Rhône-Alpes">Auvergne-Rhône-Alpes</option>
+            <option value="Nouvelle-Aquitaine">Nouvelle-Aquitaine</option>
+            <option value="Occitanie">Occitanie</option>
+            <option value="Grand Est">Grand Est</option>
+            <option value="Provence-Alpes-Côte d'Azur">Provence-Alpes-Côte d'Azur</option>
+            <option value="Pays de la Loire">Pays de la Loire</option>
+            <option value="Normandie">Normandie</option>
+            <option value="Bretagne">Bretagne</option>
+            <option value="Bourgogne-Franche-Comté">Bourgogne-Franche-Comté</option>
+            <option value="Centre-Val de Loire">Centre-Val de Loire</option>
+            <option value="Corse">Corse</option>
+            <option value="DOM-TOM / Autre">DOM-TOM / Autre</option>
+        </select>
+        <button class="btn-main btn-blue" onclick="saveProfileFromModal()" data-i18n="btn_play" style="margin-top:0;">VALIDER & JOUER ⚡</button>
+    </div>
+</div>
+
+<!-- ============================================================
+ÉCONOMIE (boutique + pass + classement + jackpot)
+============================================================ -->
+<div id="modal-shop" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+        <h2 style="margin:0 0 4px 0; color:#38ef7d; font-size:16px;" data-i18n="shop_title">🛍️ BOUTIQUE</h2>
+        <div style="font-size: 12px; color: #f8b500; font-weight: bold; margin-bottom: 6px;">🪙 <span data-i18n="coins">Pièces</span> : <span id="shop-coins-val">0</span></div>
+        <div class="tabs">
+            <button id="shop-tab-bonus" class="tab-btn active" onclick="switchShopTab('bonus')" data-i18n="shop_tab_bonus">🟢 Bonus</button>
+            <button id="shop-tab-malus" class="tab-btn" onclick="switchShopTab('malus')" data-i18n="shop_tab_malus">🔴 Malus</button>
+            <button id="shop-tab-cosmetics" class="tab-btn" onclick="switchShopTab('cosmetics')">✨ Style</button>
+            <button id="shop-tab-packs" class="tab-btn" onclick="switchShopTab('packs')">🎁 Packs</button>
+        </div>
+        <div id="shop-container" class="shop-grid"></div>
+        <button class="btn-secondary" onclick="closeShop()" data-i18n="close">Fermer</button>
+    </div>
+</div>
+
+<div id="modal-blitz-pass" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width: 410px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h2 style="margin:0; color:#f8b500; font-size:16px;">🎫 PASSE DE SAISON</h2>
+            <span id="pass-modal-season" style="font-size:10px; background:rgba(248,181,0,0.2); border:1px solid #f8b500; color:#f8b500; padding:2px 6px; border-radius:8px; font-weight:bold;">Saison 1</span>
+        </div>
+        <div id="blitz-pass-container" style="overflow-y: auto; max-height: 52vh; display: flex; flex-direction: column; gap: 6px;"></div>
+        <button class="btn-secondary" onclick="closeBlitzPass()" style="margin-top:8px;">Fermer</button>
+    </div>
+</div>
+
+<div id="modal-leaderboard" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width: 410px;">
+        <h2 style="margin:0 0 8px 0; color:#00d2ff; font-size:16px;" data-i18n="lb_title">👑 CLASSEMENT</h2>
+        <div class="lb-filters-container">
+            <div class="tabs">
+                <button id="lb-cat-points" class="tab-btn active" onclick="setLbCategory('points')">🏅 Points</button>
+                <button id="lb-cat-trophies" class="tab-btn" onclick="setLbCategory('trophies')">👑 Couronnes</button>
+                <button id="lb-cat-coins" class="tab-btn" onclick="setLbCategory('coins')">🪙 Argent</button>
+                <button id="lb-cat-combined" class="tab-btn" onclick="setLbCategory('combined')">⭐ Combiné</button>
+            </div>
+            <div class="tabs">
+                <button id="lb-scope-regional" class="tab-btn active" onclick="setLbScope('regional')" data-i18n="lb_reg">📍 Région</button>
+                <button id="lb-scope-national" class="tab-btn" onclick="setLbScope('national')" data-i18n="lb_nat">🇫🇷 France</button>
+                <button id="lb-scope-global" class="tab-btn" onclick="setLbScope('global')" data-i18n="lb_glb">🌍 Monde</button>
+            </div>
+            <div id="lb-combined-explanation" style="font-size: 10px; color: #00d2ff; text-align: center; display: none;" data-i18n="lb_combined_desc">💡 Combiné : Couronnes prioritaires, départagées par les points</div>
+        </div>
+        <div id="lb-list" class="leaderboard-list" style="max-height: 40vh;">
+            <div style="text-align:center; color:#aaa; margin-top:15px;" data-i18n="loading">Chargement...</div>
+        </div>
+        <button class="btn-secondary" onclick="closeLeaderboard()" style="margin-top:8px;" data-i18n="close">Fermer</button>
+    </div>
+</div>
+
+<div id="modal-jackpot-wheel" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="text-align:center; align-items:center;">
+        <h2 style="color:#f8b500; margin:0 0 4px 0; font-size:16px;">🎰 ROUE JACKPOT ÉCLAIR 🎰</h2>
+        <p style="color:#aaa; font-size:11px; margin-bottom:10px;">Lance la roue mystère :</p>
+        <div style="position:relative; width:140px; height:140px; margin:10px auto;">
+            <div style="position:absolute; top:-10px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:8px solid transparent; border-right:8px solid transparent; border-bottom:12px solid #ff4b2b; z-index:10;"></div>
+            <div id="wheel-element" style="position:relative; width:100%; height:100%; border-radius:50%; border:3px solid #f8b500; background:conic-gradient(#c68a00 0deg 90deg, #00c6ff 90deg 180deg, #38ef7d 180deg 270deg, #ff4b2b 270deg 360deg); display:flex; align-items:center; justify-content:center; overflow:hidden; transition: transform 3.5s cubic-bezier(0.15, 0.75, 0.1, 1);">
+                <div style="background:#1e1035; width:35px; height:35px; border-radius:50%; border:2px solid #f8b500; display:flex; align-items:center; justify-content:center; font-size:14px; z-index:2;">⚡</div>
+            </div>
+        </div>
+        <div id="wheel-result-text" style="font-size:14px; font-weight:bold; color:#fff; min-height:22px; margin:8px 0;"></div>
+        <button id="btn-spin-wheel" class="btn-main btn-gold" onclick="spinJackpotWheel()" style="width:100%;">Lancer la Roue 🎡</button>
+    </div>
+</div>
+
+<!-- ============================================================
+JEU (countdown + écran de jeu + récap)
+============================================================ -->
+<div id="countdown-overlay" style="display:none;">
+    <div style="font-size:16px; color:#aaa; margin-bottom:6px;" data-i18n="get_ready">PRÉPAREZ-VOUS !</div>
+    <div id="countdown-number" class="countdown-num">3</div>
+</div>
+
+<div id="screen-game" style="display:none; max-width:400px; margin:0 auto;">
+    <div id="hud-tow" style="display:none; max-width:400px; margin: 0 auto 6px auto; background:rgba(255,255,255,0.05); padding:6px; border-radius:8px;">
+        <div style="font-size:10px; font-weight:bold; color:#ff007f; margin-bottom:3px;" data-i18n="tow_title">🪢 CORDE RAIDE (TUG-OF-WAR)</div>
+        <div style="position:relative; background:#2a1845; height:12px; border-radius:6px; overflow:hidden; border:1px solid #522d80;">
+            <div id="tow-indicator" style="position:absolute; top:0; left:50%; width:10px; height:100%; background:#00d2ff; transform:translateX(-50%); border-radius:3px; transition:left 0.2s;"></div>
+        </div>
+    </div>
+
+    <div id="hud-1v1" class="hud" style="display:none;">
+        <div class="player-box opponent">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; font-size: 10px;">
+                <div>
+                    <span id="opp-profile-name" style="color: #ff007f; font-weight: bold;">Adversaire</span>
+                    <span id="opp-profile-title" style="font-size: 8px; color: #f8b500; font-weight: bold; margin-left: 4px;"></span>
+                </div>
+                <div id="opp-profile-badge"></div>
+            </div>
+            <div data-i18n="hud_opp_target" style="font-size: 9px; color: #aaa;">CIBLE ADVERSAIRE</div>
+            <div style="font-size:18px; color:#ff007f; font-weight:bold;" id="opp-target">1</div>
+        </div>
+    </div>
+
+    <div id="hud-solo" class="hud" style="display:none;">
+        <div class="player-box me">
+            <div data-i18n="hud_solo_score" style="font-size: 9px; color: #aaa;">SCORE</div>
+            <div style="font-size:18px; color:#00ff88; font-weight:bold;" id="solo-score">0</div>
+        </div>
+    </div>
+
+    <div style="font-size:13px; margin-bottom:4px; font-weight:bold;">
+        <span data-i18n="timer_label">Temps</span> : <span id="game-timer" style="color:#ff007f;">30</span>s
+    </div>
+
+    <div style="background: rgba(0, 210, 255, 0.1); border: 2px solid #00d2ff; border-radius: 10px; padding: 4px 10px; margin: 0 auto 6px auto; max-width: 400px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <span style="font-size: 10px; font-weight: bold; color: #aaa;" data-i18n="target_label">CIBLE :</span>
+        <span id="game-target-giant" style="font-size: 24px; font-weight: 900; color: #00d2ff;">1</span>
+    </div>
+
+    <div id="power-zone" style="display:none;"></div>
+    <div id="grid" class="grid"></div>
+
+    <div class="emote-bar">
+        <!-- Boutons reconstruits par fixEmoteBars() dans profil.js -->
+    </div>
+</div>
+
+<div id="recap-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="text-align:center;">
+        <div id="winner-cinematic-container"></div>
+        <div id="recap-banner" style="font-size:20px; font-weight:900; margin-bottom:6px;">RÉSULTAT</div>
+        <div id="recap-reason" style="color:#aaa; margin-bottom:10px; font-size:12px;"></div>
+
+        <div id="recap-1v1-rows">
+            <div style="display:flex; justify-content:space-between; margin:4px 0; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:3px; font-size:12px;">
+                <span data-i18n="recap_my_target">🎯 Ma Cible :</span>
+                <span id="recap-my-target" style="color:#00d2ff; font-weight:bold;">-</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin:4px 0; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:3px; font-size:12px;">
+                <span data-i18n="recap_opp_target">🎯 Cible Adversaire :</span>
+                <span id="recap-opp-target" style="color:#ff007f; font-weight:bold;">-</span>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin:4px 0; font-size:12px;">
+            <span data-i18n="recap_my_score">⭐ Mon Score :</span>
+            <span id="recap-my-score" style="font-weight:bold;">-</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin:4px 0 10px 0; color:#f8b500; font-size:12px;">
+            <span data-i18n="recap_coins">🪙 Pièces Gagnées :</span>
+            <span id="recap-coins-gained" style="font-weight:bold;">+0</span>
+        </div>
+
+        <div class="emote-bar" style="margin-bottom: 10px;">
+            <!-- Boutons reconstruits par fixEmoteBars() dans profil.js -->
+        </div>
+
+        <button id="btn-rematch" class="btn-main btn-blue" onclick="requestRematch()" style="margin-bottom: 6px; display: none;" data-i18n="rematch_btn">Revanche ⚔️</button>
+        <button id="btn-double-reward" class="btn-main btn-reward" onclick="watchAdToDoubleReward()" data-i18n="double_reward">📺 Doubler mes gains (Pub)</button>
+        <button class="btn-main" onclick="showMainMenu()" data-i18n="main_menu">MENU PRINCIPAL</button>
+    </div>
+</div>
+
+<!-- ============================================================
+TROPHÉES (salle + popup)
+============================================================ -->
+<div id="modal-trophy-room" class="modal-overlay" style="display:none;">
+    <div class="trophy-room-card">
+        <div class="trophy-room-header">
+            <div class="trophy-room-owner">
+                <span id="trophy-room-flag" style="font-size:28px;">🇫🇷</span>
+                <span id="trophy-room-username" style="font-size:22px; font-weight:900; color:#fff; margin:0 8px;">Joueur</span>
+                <span id="trophy-room-count" style="font-size:13px; color:#f8b500;">0/16 🏆</span>
+            </div>
+            <button onclick="closeTrophyRoom()" class="modal-close">✕</button>
+        </div>
+        <div id="trophy-room-shelves"></div>
+    </div>
+</div>
+
+<div id="trophy-unlock-popup" style="display:none; position:fixed; top:20%; left:50%; transform:translateX(-50%); z-index:9999; background:linear-gradient(135deg,#1a0033,#0f051d); border:2px solid #f8b500; border-radius:16px; padding:20px 40px; text-align:center; box-shadow:0 0 40px rgba(248,181,0,0.8); animation:trophyBurst 0.8s ease;">
+    <div style="font-size:11px; color:#f8b500; letter-spacing:2px; margin-bottom:8px;">🏆 NOUVEAU TROPHÉE DÉBLOQUÉ !</div>
+    <div id="trophy-unlock-emoji" style="font-size:64px; margin:8px 0;">🏆</div>
+    <div id="trophy-unlock-name" style="font-size:20px; font-weight:900; color:#fff;">Nom du trophée</div>
+    <div id="trophy-unlock-title" style="font-size:13px; color:#00d2ff; margin-top:6px;">Titre débloqué</div>
+</div>
+
+<!-- ============================================================
+MODALE SOUTIEN CRÉATEUR (pub visionnable OU skip après 5 s)
+============================================================ -->
+<div id="modal-support" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="text-align:center; max-width:360px;">
+        <h2 style="margin:0 0 10px 0; color:#f8b500;" data-i18n="support_title">❤️ Soutenir le Créateur</h2>
+        <p style="color:#ccc; font-size:12px; line-height:1.5; margin-bottom:12px;" data-i18n="support_desc">Chiffre Blitz est un projet indépendant, gratuit à jouer (achats optionnels). Regarde une courte pub pour me soutenir, ou passe ton chemin après 5 s. ❤️</p>
+        <button class="btn-main btn-gold" style="width:100%; margin-bottom:8px;" onclick="closeSupportModal(); playLaunchAd();" data-i18n="support_watch">📺 Regarder la pub (soutenir) ❤️</button>
+        <button id="support-skip-btn" class="btn-secondary" style="width:100%; margin-bottom:8px;" onclick="closeSupportModal(); proceedAfterAd();" disabled><span id="support-skip-lbl">⏭️ Passer (5)</span></button>
+    </div>
+</div>
+
+<!-- ============================================================
+SCRIPTS (ordre de chargement important)
+============================================================ -->
+<script>
+(function(){
+  var v = "?v=" + Date.now();
+  var files = ["i18n.js","audio.js","son-saisons.js","version.js","profil.js","admin.js","social.js","passe.js","saisons.js","fx.js","jeu.js","modes-catch.js","tour.js","mobile-menu.js","ads.js","iap.js"];
+  for (var i = 0; i < files.length; i++) {
+    document.write('<script src="' + files[i] + v + '"><\/script>');
+  }
+})();
+</script>
+
+<script>
+// Désactive tout ancien Service Worker (nettoie automatiquement les mobiles qui l'ont déjà)
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
+}
+</script>
+<script>
+(function(){
+  function cbRemoveBanner(){ var b = document.getElementById('cb-maint-banner'); if (b){ if (b._iv) clearInterval(b._iv); b.remove(); } }
+  function cbShowBanner(msg, seconds){
+    cbRemoveBanner();
+    var b = document.createElement('div'); b.id = 'cb-maint-banner';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483646;background:linear-gradient(90deg,#ff8a00,#ff4b2b);color:#fff;font-family:system-ui,sans-serif;font-weight:800;font-size:13px;padding:10px 12px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.5);pointer-events:none;';
+    document.body.appendChild(b);
+    var n = Math.max(0, parseInt(seconds,10)||0);
+    var render = function(){ var m = Math.floor(n/60), s = n%60; b.innerHTML = '🛠️ MAINTENANCE DANS ' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + ' — termine ta partie !'; };
+    render();
+    b._iv = setInterval(function(){ n--; if (n <= 0){ clearInterval(b._iv); b._iv = null; b.innerHTML = '🛠️ Maintenance imminente — fin de partie = déconnexion'; return; } render(); }, 1000);
+  }
+  function cbShowLocked(msg){
+    cbRemoveBanner();
+    var ov = document.getElementById('cbMaintOverlay');
+    if (!ov){ ov = document.createElement('div'); ov.id = 'cbMaintOverlay'; document.body.appendChild(ov); }
+    ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#0a0514;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;';
+    ov.innerHTML = '<div style="max-width:420px;padding:24px;">' +
+      '<div style="font-size:56px;">🚧</div>' +
+      '<div style="font-size:22px;font-weight:900;color:#00d2ff;margin:10px 0 6px;">MAINTENANCE EN COURS</div>' +
+      '<div id="cbMaintMsg" style="font-size:14px;line-height:1.5;color:#ddd;margin-bottom:18px;"></div>' +
+      '<div style="height:8px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden;"><div style="height:100%;width:40%;border-radius:4px;background:linear-gradient(90deg,#00c6ff,#0072ff);animation:cbMaintSlide 1.6s ease-in-out infinite;"></div></div>' +
+      '<style>@keyframes cbMaintSlide{0%{margin-left:-40%}100%{margin-left:100%}}</style>' +
+      '<input id="cbMaintCode" placeholder="Tu as un code ? 🔑" style="width:70%;margin-top:18px;padding:10px;border-radius:10px;border:1px solid #444;background:#111;color:#fff;text-align:center;">' +
+      '<br><button onclick="cbMaintSend()" style="margin-top:10px;padding:10px 18px;border-radius:10px;border:none;background:#00d2ff;color:#001;font-weight:800;cursor:pointer;">Entrer</button>' +
+      '<div style="font-size:11px;color:#888;margin-top:14px;">Retour automatique dès la fin de la maintenance.</div></div>';
+    var m = document.getElementById('cbMaintMsg'); if (m) m.textContent = msg || '';
+    if (!ov._probe){
+      ov._probe = setInterval(function(){
+        fetch('https://chiffre-blitz-server.onrender.com/api/maintenance?cb=' + Date.now(), { cache:'no-store' })
+          .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+          .then(function(d){ if (d && d.enabled === false){ localStorage.removeItem('cb_maint_code'); location.reload(); } })
+          .catch(function(){});
+      }, 10000);
+    }
+  }
+  window.cbMaintSend = function(){ var c = (document.getElementById('cbMaintCode').value||'').trim(); if (!c) return; localStorage.setItem('cb_maint_code', c); location.reload(); };
+  if (typeof socket !== 'undefined' && socket && socket.on){
+    socket.on('maintenance_announce', function(d){
+      if (d && d.delay > 0) {
+        cbShowBanner(d.message, d.delay);
+      } else if (d && (d.inMatch || d.inTower)) {
+        // ✅ Joueur en partie : PAS de page verrouillée, juste le bandeau
+        var b = document.getElementById('cb-maint-banner');
+        if (b){ if (b._iv) clearInterval(b._iv); b._iv = null; b.innerHTML = '🛠️ Termine ta partie — déconnexion 10 s après les résultats'; }
+      } else {
+        cbShowLocked(d && d.message);
+      }
+    });
+    socket.on('maintenance_kick', function(d){ cbShowLocked(d && d.message); });
+    socket.on('maintenance_end', function(){ localStorage.removeItem('cb_maint_code'); location.reload(); });
+    socket.on('register_result', function(d){ if (d && d.ok === false && d.reason === 'maintenance') cbShowLocked(d.message); });
+  }
+})();
+</script>
+</body>
+</html>
