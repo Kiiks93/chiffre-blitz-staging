@@ -19,9 +19,11 @@ const CONFIG = {
   LOGO_CLICK_TIMEOUT_MS: 5000,
   LOGO_CLICK_COUNT: 10
 };
+
 if (!CONFIG.SERVER_URL || CONFIG.SERVER_URL.indexOf("chiffre-blitz.fr") !== -1) {
   CONFIG.SERVER_URL = "https://chiffre-blitz-server.onrender.com";
 }
+
 const RANKS = [
   { min: 1300, fr: "Calculateur ⚡", en: "Calculator ⚡" },
   { min: 700, fr: "Expert 🧠", en: "Expert 🧠" },
@@ -49,9 +51,6 @@ const EMOTES = ["\u{1F525}", "\u26A1", "\u{1F916}", "\u{1F480}", "\u{1F602}", "\
 /* ============================================================
 2. CONNEXION SERVEUR
 ============================================================ */
-if (!CONFIG.SERVER_URL || CONFIG.SERVER_URL.indexOf("chiffre-blitz.fr") !== -1) {
-  CONFIG.SERVER_URL = "https://chiffre-blitz-server.onrender.com";
-}
 const socket = io(CONFIG.SERVER_URL, {
   reconnection: true,
   reconnectionAttempts: CONFIG.RECONNECTION_ATTEMPTS,
@@ -59,6 +58,7 @@ const socket = io(CONFIG.SERVER_URL, {
   query: { v: typeof VERSION_CLIENT !== 'undefined' ? VERSION_CLIENT.version : "1.3.0" },
   auth: { maintCode: localStorage.getItem('cb_maint_code') || "" }
 });
+
 socket.on("disconnect", () => { SoundEngine.stopMusic(true); });
 
 socket.on("connect", () => {
@@ -205,6 +205,7 @@ function getPlayerTimezone() {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Paris'; }
   catch (e) { return 'Europe/Paris'; }
 }
+
 function getFlagEmoji(flag) {
   if (!flag) return "🇫🇷";
   let cleanFlag = flag.replace(/['"]/g, "").trim();
@@ -886,43 +887,45 @@ function switchAccountTab(tab) {
 }
 
 function renderAccountForm(tab) {
-const d = i18n[currentLang];
-const container = document.getElementById('account-form-container');
-if (!container) return;
-if (tab === 'login') {
-container.innerHTML = `<input id="account-username" placeholder="${d.account_username_ph}" maxlength="16" style="width:100%; margin-bottom:6px; padding:10px; border-radius:8px; background:#0f1a2e; border:1px solid #00d2ff; color:#fff; text-align:center;">
-<div style="position:relative; margin-bottom:10px;">
-  <input id="account-secret" type="password" placeholder="${d.account_secret_ph}" maxlength="32" style="width:100%; padding:10px; padding-right:42px; border-radius:8px; background:#0f1a2e; border:1px solid #00d2ff; color:#fff; text-align:center;">
-  <button type="button" id="account-secret-eye" onclick="cbToggleAccountSecret()" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:16px; cursor:pointer; padding:4px; line-height:1;">👁️</button>
-</div>
-<button class="btn-main btn-blue" onclick="submitAccountForm('login')" style="width:100%;"> ${d.account_login_btn || "Accéder à mon compte"}</button>`;
-} else {
-container.innerHTML = `<input id="account-username" placeholder="${d.account_username_ph}" maxlength="16" oninput="onUsernameTyping()" style="width:100%; margin-bottom:2px; padding:10px; border-radius:8px; background:#0f1a2e; border:1px solid #00d2ff; color:#fff; text-align:center;">
-<div id="username-availability" style="font-size:10px; font-weight:bold; min-height:14px; margin-bottom:6px; text-align:center;"></div>
-<div style="position:relative; margin-bottom:4px;">
-  <input id="account-secret" type="password" placeholder="${d.account_secret_ph}" maxlength="32" style="width:100%; padding:10px; padding-right:42px; border-radius:8px; background:#0f1a2e; border:1px solid #00d2ff; color:#fff; text-align:center;">
-  <button type="button" id="account-secret-eye" onclick="cbToggleAccountSecret()" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:16px; cursor:pointer; padding:4px; line-height:1;">👁️</button>
-</div>
-<div style="font-size:9px; color:#aaa; text-align:center; margin-bottom:8px; line-height:1.4;">${d.account_secret_help}</div>
-<div style="background:rgba(248,181,0,0.12); border:1px solid #f8b500; border-radius:8px; padding:8px; margin-bottom:8px; font-size:10px; color:#f8b500; text-align:center; line-height:1.4;">⚠️ ${d.account_key_warning}</div>
-<div style="font-size:10px; color:#aaa; margin-bottom:4px; text-align:left;">🌍 ${currentLang === "fr" ? "Ta région (pour le classement régional)" : "Your region (for regional ranking)"}</div>
-<select id="account-region" style="width:100%; margin-bottom:10px; padding:10px; border-radius:8px; background:#0f1a2e; border:1px solid #00d2ff; color:#fff;"></select>
-<button class="btn-main btn-gold" onclick="submitAccountForm('create')" style="width:100%;"> ${d.account_create_btn || "Créer mon compte"}</button>`;
-const srcRegion = document.getElementById("region-input");
-const dstRegion = document.getElementById("account-region");
-if (srcRegion && dstRegion) dstRegion.innerHTML = srcRegion.innerHTML;
-}
+  const d = i18n[currentLang];
+  const container = document.getElementById('account-form-container');
+  if (!container) return;
+  if (tab === 'login') {
+    container.innerHTML = `
+      <input id="account-username" placeholder="${d.account_username_ph}" maxlength="16" style="width:100%; margin-bottom:6px; padding:10px; border-radius:8px; background:#0f1a2e; border:1px solid #00d2ff; color:#fff; text-align:center;">
+      <div style="position:relative; margin-bottom:10px;">
+        <input id="account-secret" type="password" placeholder="${d.account_secret_ph}" maxlength="32" style="width:100%; padding:10px; padding-right:42px; border-radius:8px; background:#0f1a2e; border:1px solid #00d2ff; color:#fff; text-align:center;">
+        <button type="button" id="account-secret-eye" onclick="cbToggleAccountSecret()" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:16px; cursor:pointer; padding:4px; line-height:1;">👁️</button>
+      </div>
+      <button class="btn-main btn-blue" onclick="submitAccountForm('login')" style="width:100%;"> ${d.account_login_btn || "Accéder à mon compte"}</button>`;
+  } else {
+    container.innerHTML = `
+      <input id="account-username" placeholder="${d.account_username_ph}" maxlength="16" oninput="onUsernameTyping()" style="width:100%; margin-bottom:2px; padding:10px; border-radius:8px; background:#0f1a2e; border:1px solid #00d2ff; color:#fff; text-align:center;">
+      <div id="username-availability" style="font-size:10px; font-weight:bold; min-height:14px; margin-bottom:6px; text-align:center;"></div>
+      <div style="position:relative; margin-bottom:4px;">
+        <input id="account-secret" type="password" placeholder="${d.account_secret_ph}" maxlength="32" style="width:100%; padding:10px; padding-right:42px; border-radius:8px; background:#0f1a2e; border:1px solid #00d2ff; color:#fff; text-align:center;">
+        <button type="button" id="account-secret-eye" onclick="cbToggleAccountSecret()" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:16px; cursor:pointer; padding:4px; line-height:1;">👁️</button>
+      </div>
+      <div style="font-size:9px; color:#aaa; text-align:center; margin-bottom:8px; line-height:1.4;">${d.account_secret_help}</div>
+      <div style="background:rgba(248,181,0,0.12); border:1px solid #f8b500; border-radius:8px; padding:8px; margin-bottom:8px; font-size:10px; color:#f8b500; text-align:center; line-height:1.4;">⚠️ ${d.account_key_warning}</div>
+      <div style="font-size:10px; color:#aaa; margin-bottom:4px; text-align:left;">🌍 ${currentLang === "fr" ? "Ta région (pour le classement régional)" : "Your region (for regional ranking)"}</div>
+      <select id="account-region" style="width:100%; margin-bottom:10px; padding:10px; border-radius:8px; background:#0f1a2e; border:1px solid #00d2ff; color:#fff;"></select>
+      <button class="btn-main btn-gold" onclick="submitAccountForm('create')" style="width:100%;"> ${d.account_create_btn || "Créer mon compte"}</button>`;
+    const srcRegion = document.getElementById("region-input");
+    const dstRegion = document.getElementById("account-region");
+    if (srcRegion && dstRegion) dstRegion.innerHTML = srcRegion.innerHTML;
+  }
 }
 
 // 👁️ Afficher / masquer le code secret (Connexion & Création)
 function cbToggleAccountSecret() {
-const input = document.getElementById('account-secret');
-const eye = document.getElementById('account-secret-eye');
-if (!input) return;
-const nowVisible = (input.type === 'text');
-input.type = nowVisible ? 'password' : 'text';
-if (eye) eye.textContent = nowVisible ? '👁️' : '🙈';
-input.focus();
+  const input = document.getElementById('account-secret');
+  const eye = document.getElementById('account-secret-eye');
+  if (!input) return;
+  const nowVisible = (input.type === 'text');
+  input.type = nowVisible ? 'password' : 'text';
+  if (eye) eye.textContent = nowVisible ? '👁️' : '🙈';
+  input.focus();
 }
 
 let usernameCheckTimer = null;
@@ -959,62 +962,63 @@ socket.on('username_check_result', (res) => {
 });
 
 function showChangeCodeModal() {
-const d = i18n[currentLang];
-let modal = document.getElementById('modal-change-code');
-if (!modal) {
-modal = document.createElement('div');
-modal.id = 'modal-change-code';
-modal.className = 'modal-overlay';
-modal.innerHTML = `<div class="modal-card" style="max-width:360px;">
-<h3 style="color:#00d2ff; margin:0 0 10px 0; text-align:center;">🔑 CHANGER MON CODE SECRET</h3>
-<div class="card-desc" style="font-size:11px; color:#aaa; text-align:center; margin-bottom:10px;"> 8+ caractères avec <b>lettres</b>, <b>chiffres</b> et <b>caractère spécial</b> (!@#$%&*+-_) </div>
+  const d = i18n[currentLang];
+  let modal = document.getElementById('modal-change-code');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-change-code';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-card" style="max-width:360px;">
+        <h3 style="color:#00d2ff; margin:0 0 10px 0; text-align:center;">🔑 CHANGER MON CODE SECRET</h3>
+        <div class="card-desc" style="font-size:11px; color:#aaa; text-align:center; margin-bottom:10px;"> 8+ caractères avec <b>lettres</b>, <b>chiffres</b> et <b>caractère spécial</b> (!@#$%&*+-_) </div>
+        
+        <div style="position:relative; margin-bottom:6px;">
+          <input type="password" id="change-old-code" placeholder="${d.change_old_code_ph}" style="width:100%; background:#0f051d; color:#fff; border:2px solid #00d2ff; border-radius:8px; padding:8px; padding-right:42px; font-size:13px;">
+          <button type="button" class="eye-toggle" data-target="change-old-code" aria-label="Afficher le code" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:16px; cursor:pointer; padding:4px; line-height:1;">👁️</button>
+        </div>
+        
+        <div style="position:relative; margin-bottom:6px;">
+          <input type="password" id="change-new-code" placeholder="${d.change_new_code_ph}" style="width:100%; background:#0f051d; color:#fff; border:2px solid #00d2ff; border-radius:8px; padding:8px; padding-right:42px; font-size:13px;">
+          <button type="button" class="eye-toggle" data-target="change-new-code" aria-label="Afficher le code" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:16px; cursor:pointer; padding:4px; line-height:1;">👁️</button>
+        </div>
+        
+        <div style="position:relative; margin-bottom:10px;">
+          <input type="password" id="change-confirm-code" placeholder="${d.change_confirm_code_ph}" style="width:100%; background:#0f051d; color:#fff; border:2px solid #00d2ff; border-radius:8px; padding:8px; padding-right:42px; font-size:13px;">
+          <button type="button" class="eye-toggle" data-target="change-confirm-code" aria-label="Afficher le code" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:16px; cursor:pointer; padding:4px; line-height:1;">👁️</button>
+        </div>
+        
+        <div id="change-code-result" style="min-height:16px; font-size:11px; text-align:center; font-weight:bold; margin-bottom:8px;"></div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-secondary" onclick="closeChangeCodeModal()" style="margin-top:0;">${d.cancel}</button>
+          <button class="btn-main btn-gold" onclick="submitChangeCode()" style="margin-top:0;">${d.change_code_validate}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
 
-<div style="position:relative; margin-bottom:6px;">
-<input type="password" id="change-old-code" placeholder="${d.change_old_code_ph}" style="width:100%; background:#0f051d; color:#fff; border:2px solid #00d2ff; border-radius:8px; padding:8px; padding-right:42px; font-size:13px;">
-<button type="button" class="eye-toggle" data-target="change-old-code" aria-label="Afficher le code" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:16px; cursor:pointer; padding:4px; line-height:1;">👁️</button>
-</div>
+    // 👁️ Clic sur l'œil = afficher / masquer le code saisi
+    modal.querySelectorAll('.eye-toggle').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById(btn.dataset.target);
+        if (!input) return;
+        const nowVisible = (input.type === 'text');
+        input.type = nowVisible ? 'password' : 'text';
+        btn.textContent = nowVisible ? '👁️' : '🙈';
+        input.focus();
+      });
+    });
+  }
 
-<div style="position:relative; margin-bottom:6px;">
-<input type="password" id="change-new-code" placeholder="${d.change_new_code_ph}" style="width:100%; background:#0f051d; color:#fff; border:2px solid #00d2ff; border-radius:8px; padding:8px; padding-right:42px; font-size:13px;">
-<button type="button" class="eye-toggle" data-target="change-new-code" aria-label="Afficher le code" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:16px; cursor:pointer; padding:4px; line-height:1;">👁️</button>
-</div>
+  // À chaque ouverture : champs vidés + yeux réinitialisés en "masqué"
+  ['change-old-code', 'change-new-code', 'change-confirm-code'].forEach((id) => {
+    const input = document.getElementById(id);
+    if (input) { input.value = ''; input.type = 'password'; }
+  });
+  modal.querySelectorAll('.eye-toggle').forEach((btn) => { btn.textContent = '👁️'; });
+  const resultBox = document.getElementById('change-code-result');
+  if (resultBox) { resultBox.innerText = ''; resultBox.style.color = ''; }
 
-<div style="position:relative; margin-bottom:10px;">
-<input type="password" id="change-confirm-code" placeholder="${d.change_confirm_code_ph}" style="width:100%; background:#0f051d; color:#fff; border:2px solid #00d2ff; border-radius:8px; padding:8px; padding-right:42px; font-size:13px;">
-<button type="button" class="eye-toggle" data-target="change-confirm-code" aria-label="Afficher le code" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:16px; cursor:pointer; padding:4px; line-height:1;">👁️</button>
-</div>
-
-<div id="change-code-result" style="min-height:16px; font-size:11px; text-align:center; font-weight:bold; margin-bottom:8px;"></div>
-<div style="display:flex; gap:6px;">
-<button class="btn-secondary" onclick="closeChangeCodeModal()" style="margin-top:0;">${d.cancel}</button>
-<button class="btn-main btn-gold" onclick="submitChangeCode()" style="margin-top:0;">${d.change_code_validate}</button>
-</div>
-</div>`;
-document.body.appendChild(modal);
-
-// 👁️ Clic sur l'œil = afficher / masquer le code saisi
-modal.querySelectorAll('.eye-toggle').forEach((btn) => {
-btn.addEventListener('click', () => {
-const input = document.getElementById(btn.dataset.target);
-if (!input) return;
-const nowVisible = (input.type === 'text');
-input.type = nowVisible ? 'password' : 'text';
-btn.textContent = nowVisible ? '👁️' : '🙈';
-input.focus();
-});
-});
-}
-
-// À chaque ouverture : champs vidés + yeux réinitialisés en "masqué"
-['change-old-code', 'change-new-code', 'change-confirm-code'].forEach((id) => {
-const input = document.getElementById(id);
-if (input) { input.value = ''; input.type = 'password'; }
-});
-modal.querySelectorAll('.eye-toggle').forEach((btn) => { btn.textContent = '👁️'; });
-const resultBox = document.getElementById('change-code-result');
-if (resultBox) { resultBox.innerText = ''; resultBox.style.color = ''; }
-
-modal.style.display = 'flex';
+  modal.style.display = 'flex';
 }
 
 function closeChangeCodeModal() {
@@ -1275,7 +1279,7 @@ function checkAndShowProfileModal() {
       setTimeout(() => { if (typeof openLeaderboard === "function") openLeaderboard(); }, 400);
     } else if (lastScreen === "pass") {
       setTimeout(() => { if (typeof openBlitzPass === "function") openBlitzPass(); }, 400);
-      } else {
+    } else {
       showTitleScreen();   // lancement frais (app tuée) → page explications
     }
   } else {
@@ -1491,11 +1495,11 @@ let justCreatedAccount = false;
 socket.on('register_result', (res) => {
   if (!res.ok) {
     // ✅ 1. GESTION PROPRE DE LA MAINTENANCE (On ne wipe pas le localStorage !)
-     if (res.reason === 'maintenance') {
-    pendingProfileValidation = false;
-    pendingAccountLogin = false;
-    cbShowMaintenanceLocked(res.message);   // affiche l'écran verrouillé ici
-    return;
+    if (res.reason === 'maintenance') {
+      pendingProfileValidation = false;
+      pendingAccountLogin = false;
+      cbShowMaintenanceLocked(res.message);   // affiche l'écran verrouillé ici
+      return;
     }
     
     // ❌ 2. ERREURS CLASSIQUES (On wipe la session locale)
@@ -1779,7 +1783,7 @@ setInterval(() => {
     }
   });
 
-    document.addEventListener("resume", () => {
+  document.addEventListener("resume", () => {
     document.body.style.display = "none";
     void document.body.offsetHeight;
     document.body.style.display = "";
@@ -1787,29 +1791,32 @@ setInterval(() => {
     updateLastActiveTime();
   });
 })();
+
 /* ============================================================
 🛠️ MODE MAINTENANCE — côté joueur (version finale)
 ============================================================ */
-function cbMaintRemoveBanner(){
+function cbMaintRemoveBanner() {
   const b = document.getElementById('cb-maint-bar');
   if (b) b.remove();
 }
 
-function cbShowMaintenanceCountdown(message, seconds){
+function cbShowMaintenanceCountdown(message, seconds) {
   cbMaintRemoveBanner();
   const bar = document.createElement('div');
   bar.id = 'cb-maint-bar';
   bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483646;background:linear-gradient(90deg,#ff8a00,#ff4b2b);color:#fff;font-family:system-ui,sans-serif;font-weight:800;font-size:13px;padding:10px 12px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.5);pointer-events:none;';
   document.body.appendChild(bar);
   let remaining = Math.max(0, parseInt(seconds, 10) || 0);
-const render = () => {
-  const m = Math.floor(remaining / 60), s = remaining % 60;
-  bar.innerHTML = '🛠️ MAINTENANCE DANS ' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + ' — termine ta partie (maintenance en cours) !';
-};
+  
+  const render = () => {
+    const m = Math.floor(remaining / 60), s = remaining % 60;
+    bar.innerHTML = '🛠️ MAINTENANCE DANS ' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + ' — termine ta partie (maintenance en cours) !';
+  };
+  
   render();
   bar._cbInterval = setInterval(() => {
     remaining--;
-    if (remaining <= 0){
+    if (remaining <= 0) {
       clearInterval(bar._cbInterval);
       bar.innerHTML = '🛠️ Maintenance imminente (maintenance en cours) — fin de partie = déconnexion';
       return;
@@ -1818,10 +1825,10 @@ const render = () => {
   }, 1000);
 }
 
-function cbShowMaintenanceLocked(message){
+function cbShowMaintenanceLocked(message) {
   cbMaintRemoveBanner();
   let ov = document.getElementById('cb-maint-overlay');
-  if (!ov){
+  if (!ov) {
     ov = document.createElement('div');
     ov.id = 'cb-maint-overlay';
     document.body.appendChild(ov);
@@ -1840,19 +1847,22 @@ function cbShowMaintenanceLocked(message){
     '<p style="font-size:12px;color:#888;margin-top:14px;">Retour automatique dès la fin de la maintenance.</p>' +
     '<style>@keyframes cbMaintSlide{0%{margin-left:-40%}100%{margin-left:100%}}</style>' +
     '</div>';
+    
   const msgEl = ov.querySelector('#cb-maint-msg');
   if (msgEl && message) msgEl.textContent = message;
+  
   ov.querySelector('#cb-maint-enter').onclick = () => {
     const c = (ov.querySelector('#cb-maint-code').value || '').trim();
     if (!c) return;
     localStorage.setItem('cb_maint_code', c);
     location.reload();
   };
-  if (!ov._cbProbe){
+  
+  if (!ov._cbProbe) {
     ov._cbProbe = setInterval(() => {
       fetch(CONFIG.SERVER_URL + '/api/maintenance?cb=' + Date.now(), { cache: 'no-store' })
         .then(r => r.ok ? r.json() : Promise.reject())
-        .then(d => { if (d && d.enabled === false){ localStorage.removeItem('cb_maint_code'); location.reload(); } })
+        .then(d => { if (d && d.enabled === false) { localStorage.removeItem('cb_maint_code'); location.reload(); } })
         .catch(() => {});
     }, 10000);
   }
@@ -1867,8 +1877,12 @@ socket.on('maintenance_announce', (d) => {
     }
   }
 });
-socket.on('maintenance_kick', (d) => { cbShowMaintenanceLocked(d && d.message); });
-socket.on('maintenance_end', () => { localStorage.removeItem('cb_maint_code'); location.reload(); });
-socket.on('register_result', (res) => {
-  if (res && !res.ok && res.reason === 'maintenance') cbShowMaintenanceLocked(res.message);
+
+socket.on('maintenance_kick', (d) => { 
+  cbShowMaintenanceLocked(d && d.message); 
+});
+
+socket.on('maintenance_end', () => { 
+  localStorage.removeItem('cb_maint_code'); 
+  location.reload(); 
 });
