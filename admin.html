@@ -444,7 +444,9 @@ function showToast(message, type = 'info', duration = 3500) {
 /* ============================================================
 CONNEXION SOCKET.IO
 ============================================================ */
-const SERVER_URL = "https://chiffre-blitz-server.onrender.com";
+const ADMIN_PANEL_URL = (location.hostname.endsWith('.onrender.com') || location.hostname === 'localhost')
+    ? location.origin + '/admin.html'
+    : 'https://chiffre-blitz-server.onrender.com/admin.html';"https://chiffre-blitz-server.onrender.com";
 let socket = null;
 let isAdminLoggedIn = false;
 
