@@ -6,7 +6,7 @@ PROFIL.JS — GESTION PROFIL, COMPTE & PERSONNALISATION
 1. CONSTANTES
 ============================================================ */
 const CONFIG = {
-  SERVER_URL: "https://chiffre-blitz-server.onrender.com",
+SERVER_URL: location.hostname.endsWith(".onrender.com") ? location.origin : "https://chiffre-blitz-server.onrender.com",
   MIN_PSEUDO_LENGTH: 3,
   MIN_CODE_LENGTH: 8,
   MAX_AVATAR_NUM: 999,
@@ -19,10 +19,6 @@ const CONFIG = {
   LOGO_CLICK_TIMEOUT_MS: 5000,
   LOGO_CLICK_COUNT: 10
 };
-
-if (!CONFIG.SERVER_URL || CONFIG.SERVER_URL.indexOf("chiffre-blitz.fr") !== -1) {
-  CONFIG.SERVER_URL = "https://chiffre-blitz-server.onrender.com";
-}
 
 const RANKS = [
   { min: 1300, fr: "Calculateur ⚡", en: "Calculator ⚡" },
