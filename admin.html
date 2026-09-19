@@ -1,983 +1,642 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>⚡ Chiffre Blitz • Admin</title>
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Chiffre Blitz ⚡</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0a0514;
+            --bg-card: #150b24;
+            --bg-input: #0f051d;
+            --neon-blue: #00d2ff;
+            --neon-gold: #f8b500;
+            --neon-red: #ff4b2b;
+            --neon-green: #00ff88;
+            --text-main: #e0e0e0;
+            --text-muted: #888;
+            --border: #2a1b44;
+        }
 
-<style>
-/* ============================================================
-RESET & BASE
-============================================================ */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { 
-    background: #0f051d; 
-    color: #fff; 
-    font-family: system-ui, -apple-system, sans-serif; 
-    padding: 14px; 
-    padding-bottom: 80px; /* Espace pour le bouton fermer mobile */
-    min-height: 100vh;
-}
-h1 { color: #00d2ff; font-size: 18px; text-align: center; margin-bottom: 4px; text-shadow: 0 0 10px rgba(0,210,255,0.3); }
-.sub { color: #f8b500; font-size: 10px; text-align: center; font-weight: bold; margin-bottom: 14px; letter-spacing: 1px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
 
-/* ============================================================
-CARTES
-============================================================ */
-.card { 
-    background: rgba(255,255,255,0.04); 
-    border: 1px solid rgba(255,255,255,0.1); 
-    border-radius: 14px; 
-    padding: 14px; 
-    margin-bottom: 14px; 
-    backdrop-filter: blur(4px);
-}
-.card h2 { font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-.card-desc { font-size: 11px; color: #aaa; line-height: 1.4; margin-bottom: 10px; }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
 
-/* ============================================================
-FORMULAIRES
-============================================================ */
-input, select, textarea { 
-    width: 100%; 
-    background: #0a0314; 
-    color: #fff; 
-    border: 1px solid #333; 
-    border-radius: 8px; 
-    padding: 10px; 
-    font-size: 13px; 
-    margin-bottom: 10px;
-    transition: border-color 0.2s;
-}
-input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: #00d2ff;
-    box-shadow: 0 0 0 2px rgba(0,210,255,0.2);
-}
-button { 
-    width: 100%; 
-    border: none; 
-    border-radius: 10px; 
-    padding: 11px; 
-    font-weight: 800; 
-    font-size: 13px; 
-    cursor: pointer; 
-    transition: transform 0.1s, opacity 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-button:active { transform: scale(0.98); }
-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        /* --- LOGIN SCREEN --- */
+        #login-screen {
+            position: fixed; inset: 0;
+            background: rgba(10, 5, 20, 0.95);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+        }
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--neon-blue);
+            border-radius: 16px;
+            padding: 40px;
+            width: 90%; max-width: 400px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.2);
+        }
+        .login-card h1 { color: var(--neon-blue); margin-bottom: 20px; font-size: 24px; }
 
-.btn-blue { background: linear-gradient(45deg,#00c6ff,#0072ff); color: #fff; box-shadow: 0 4px 12px rgba(0,114,255,0.3); }
-.btn-gold { background: linear-gradient(45deg,#f8b500,#fceabb); color: #222; box-shadow: 0 4px 12px rgba(248,181,0,0.3); }
-.btn-orange { background: linear-gradient(45deg,#ff8a00,#e52e71); color: #fff; box-shadow: 0 4px 12px rgba(255,138,0,0.3); }
-.btn-green { background: linear-gradient(45deg,#11998e,#38ef7d); color: #001; box-shadow: 0 4px 12px rgba(56,239,125,0.3); }
-.btn-red { background: linear-gradient(45deg,#ff416c,#ff4b2b); color: #fff; box-shadow: 0 4px 12px rgba(255,75,43,0.3); }
-.btn-sm { padding: 8px 12px; font-size: 11px; width: auto; }
+        /* --- HEADER --- */
+        header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .logo { font-size: 20px; font-weight: 800; color: var(--neon-blue); letter-spacing: 1px; }
+        .status-badge {
+            background: var(--bg-input);
+            padding: 6px 14px; border-radius: 20px;
+            font-size: 13px; font-weight: 600;
+            border: 1px solid var(--border);
+        }
+        .status-badge .dot { display: inline-block; width: 8px; height: 8px; background: var(--neon-green); border-radius: 50%; margin-right: 6px; }
 
-.row { display: flex; gap: 8px; margin-bottom: 10px; }
-.row > * { flex: 1; }
+        /* --- LAYOUT --- */
+        .container { display: flex; flex: 1; }
+        .sidebar {
+            width: 240px; background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            padding: 20px 0; display: flex; flex-direction: column; gap: 5px;
+        }
+        .tab-btn {
+            background: none; border: none; color: var(--text-muted);
+            padding: 12px 20px; text-align: left; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: 0.2s; border-left: 3px solid transparent;
+        }
+        .tab-btn:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+        .tab-btn.active { background: rgba(0, 210, 255, 0.1); color: var(--neon-blue); border-left-color: var(--neon-blue); }
 
-/* ============================================================
-STATUTS & RÉSULTATS
-============================================================ */
-.err { color: #ff4b2b; font-size: 12px; text-align: center; min-height: 16px; margin-top: 8px; font-weight: bold; }
-.status { text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 14px; color: #aaa; padding: 6px; background: rgba(0,0,0,0.3); border-radius: 8px; }
-.status.ok { color: #00ff88; background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); }
-.status.ko { color: #ff4b2b; background: rgba(255,75,43,0.1); border: 1px solid rgba(255,75,43,0.3); }
-.small-result { min-height: 18px; font-size: 11px; text-align: center; font-weight: bold; margin-top: 10px; padding: 6px; border-radius: 6px; }
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; max-height: calc(100vh - 60px); }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
 
-/* ============================================================
-NOTICES & DÉTAILS
-============================================================ */
-details { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px; margin-bottom: 8px; }
-summary { cursor: pointer; font-weight: bold; font-size: 12px; color: #00d2ff; outline: none; }
-summary::-webkit-details-marker { display: none; }
-summary::before { content: '▶'; display: inline-block; margin-right: 6px; transition: transform 0.2s; font-size: 10px; }
-details[open] summary::before { transform: rotate(90deg); }
+        /* --- COMPONENTS --- */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .card h2 { font-size: 18px; margin-bottom: 16px; color: var(--neon-gold); display: flex; align-items: center; gap: 8px; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
 
-label { font-size: 11px; color: #aaa; display: block; margin-bottom: 4px; font-weight: 600; }
-.notice { background: rgba(0, 210, 255, 0.08); border: 1px solid rgba(0, 210, 255, 0.35); color: #c9f7ff; border-radius: 10px; padding: 10px; font-size: 11px; line-height: 1.4; margin-bottom: 12px; }
-.warning { background: rgba(255, 138, 0, 0.08); border: 1px solid rgba(255, 138, 0, 0.45); color: #ffd8a3; }
+        label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; }
+        input, select, textarea {
+            width: 100%; padding: 10px 14px;
+            background: var(--bg-input); border: 1px solid var(--border);
+            color: white; border-radius: 8px; font-size: 14px;
+            transition: border 0.2s;
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--neon-blue); }
+        textarea { resize: vertical; min-height: 80px; }
 
-/* ============================================================
-DATES DES SAISONS
-============================================================ */
-.season-date-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-.season-date-row .season-label { width: 50px; font-weight: bold; color: #f8b500; font-size: 13px; text-align: center; flex-shrink: 0; }
-.season-date-row input[type="date"] { flex: 1; margin: 0; }
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 8px;
+            font-weight: 700; font-size: 14px; cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: linear-gradient(45deg, #0072ff, var(--neon-blue)); color: black; }
+        .btn-gold { background: linear-gradient(45deg, #ff8a00, var(--neon-gold)); color: black; }
+        .btn-red { background: linear-gradient(45deg, #8b0000, var(--neon-red)); color: white; }
+        .btn-green { background: linear-gradient(45deg, #008000, var(--neon-green)); color: black; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
 
-/* ============================================================
-TOAST NOTIFICATIONS
-============================================================ */
-#toast-container {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    pointer-events: none;
-    width: 90%;
-    max-width: 400px;
-}
-.toast {
-    background: #1e1035;
-    border: 2px solid #00d2ff;
-    color: #fff;
-    padding: 14px 20px;
-    border-radius: 14px;
-    font-weight: bold;
-    font-size: 13px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-    animation: toastIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    pointer-events: auto;
-    text-align: center;
-    backdrop-filter: blur(10px);
-}
-.toast.success { border-color: #00ff88; color: #00ff88; background: rgba(0, 40, 20, 0.95); }
-.toast.error { border-color: #ff4b2b; color: #ff4b2b; background: rgba(40, 0, 0, 0.95); }
-.toast.info { border-color: #f8b500; color: #f8b500; background: rgba(40, 20, 0, 0.95); }
-@keyframes toastIn {
-    from { opacity: 0; transform: translateY(-30px) scale(0.9); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes toastOut {
-    from { opacity: 1; transform: translateY(0) scale(1); }
-    to { opacity: 0; transform: translateY(-30px) scale(0.9); }
-}
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; inset: 0;
+            background-color: #444; transition: .4s; border-radius: 26px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 4px; bottom: 4px; background-color: white;
+            transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--neon-blue); }
+        input:checked + .slider:before { transform: translateX(24px); }
 
-/* ============================================================
-   BOUTON FERMER (MOBILE)
-   ============================================================ */
-#admin-close-btn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 99999;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ff416c, #ff4b2b);
-  color: #fff;
-  font-size: 24px;
-  font-weight: 900;
-  border: none;
-  box-shadow: 0 6px 20px rgba(255, 75, 43, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
+        .event-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid var(--border);
+        }
+        .event-row:last-child { border-bottom: none; }
+        .event-name { font-weight: 600; font-size: 14px; }
 
-#admin-close-btn:active {
-  transform: scale(0.9);
-}
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--neon-blue); text-transform: uppercase; font-size: 11px; }
+        tr:hover { background: rgba(255,255,255,0.02); }
 
-    
+        /* --- TOAST --- */
+        #toast-container {
+            position: fixed; top: 20px; right: 20px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            padding: 14px 20px; border-radius: 8px; font-weight: 600; font-size: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            animation: slideIn 0.3s ease-out;
+            min-width: 250px;
+        }
+        .toast.success { background: rgba(0, 255, 136, 0.9); color: black; border-left: 4px solid #008000; }
+        .toast.error { background: rgba(255, 75, 43, 0.9); color: white; border-left: 4px solid #8b0000; }
+        .toast.info { background: rgba(0, 210, 255, 0.9); color: black; border-left: 4px solid #0072ff; }
 
-/* ============================================================
-HEADER DASHBOARD
-============================================================ */
-.dash-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 14px;
-    padding: 10px;
-    background: rgba(0,210,255,0.1);
-    border: 1px solid rgba(0,210,255,0.3);
-    border-radius: 12px;
-}
-.dash-header h2 { margin: 0; font-size: 16px; color: #00d2ff; }
-</style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding: 10px; border-right: none; border-bottom: 1px solid var(--border); }
+            .tab-btn { border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; }
+            .tab-btn.active { border-left: none; border-bottom-color: var(--neon-blue); }
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .main-content { padding: 15px; }
+        }
+    </style>
 </head>
-
 <body>
 
-<h1>⚡ CHIFFRE BLITZ • ADMIN COMMAND CENTER</h1>
-<div class="sub">FENÊTRE INDÉPENDANTE</div>
-<div id="server-status" class="status">Connexion serveur...</div>
-
-<!-- ============================================================
-LOGIN
-============================================================ -->
-<div id="admin-login-section" class="card">
-  <h2 style="color:#f8b500;">🔒 ACCÈS RESTREINT DÉVELOPPEUR</h2>
-  <input type="password" id="admin-password-input" placeholder="Mot de passe admin" autocomplete="current-password">
-  <button class="btn-blue" onclick="authAdmin()" id="btn-login">CONNEXION STUDIO ⚡</button>
-  <div class="err" id="admin-login-error"></div>
-</div>
-
-<!-- ============================================================
-DASHBOARD
-============================================================ -->
-<div id="admin-dashboard-section" style="display:none;">
-
-  <div class="dash-header">
-    <h2>🎛️ Dashboard</h2>
-    <button class="btn-red btn-sm" onclick="logoutAdmin()">🚪 Déconnexion</button>
-  </div>
-
-  <!-- ===== MODE MAINTENANCE ===== -->
-  <div class="card" id="maint-card" style="border-color: rgba(255,75,43,0.55);">
-    <h2 style="color:#ff4b2b;">🛠️ Mode Maintenance</h2>
-    <div id="maint-status" class="card-desc" style="font-weight:bold;">🟢 Désactivée</div>
-    <label style="display:flex; align-items:center; gap:8px; margin:8px 0;">
-      <input type="checkbox" id="maint-enabled" style="width:auto; margin:0;">
-      <span>Activer la maintenance (Déconnecte les joueurs)</span>
-    </label>
-    <label>Message affiché aux joueurs :</label>
-    <textarea id="maint-message" rows="2" placeholder="Message...">🔢 Maintenance en cours : on compte jusqu'à… bah non en fait, on répare ! Retour très vite 😉</textarea>
-    <label>Code Bypass (Admin/Test) :</label>
-    <div class="row" style="margin-bottom:10px;">
-      <input type="text" id="maint-bypass-code" placeholder="Code d'accès pendant maintenance" style="margin:0;">
-      <button class="btn-blue btn-sm" onclick="generateBypassCode()" style="flex:0 0 auto;">🎲</button>
-      <button class="btn-gold btn-sm" onclick="copyBypassCode()" style="flex:0 0 auto;">📋</button>
-    </div>
-    <div class="row">
-      <button class="btn-orange" onclick="saveMaint()">💾 Enregistrer / Appliquer</button>
-      <button class="btn-blue" onclick="refreshMaint()">🔄 Rafraîchir</button>
-    </div>
-  </div>
-
-<div class="admin-field">
-    <label>⏱️ Délai avant coupure (secondes)</label>
-    <input type="number" id="maint-delay" value="60" min="0" max="600" step="5" 
-           style="width:100px; padding:8px; border-radius:8px; background:#0f1a2e; border:1px solid #00d2ff; color:#fff; text-align:center;">
-    <small style="color:#aaa; display:block; margin-top:4px;">0 = coupure immédiate • 60 = 1 minute • 300 = 5 minutes</small>
-</div>
-
-  <!-- ===== COMPTEUR EN LIGNE ===== -->
-  <div class="card" style="border-color: rgba(0,210,255,0.55);">
-    <h2 style="color:#00d2ff;">🟢 Joueurs en ligne</h2>
-    <div id="admin-online-count" style="font-size:36px; font-weight:900; color:#00ff88; text-align:center; text-shadow: 0 0 20px rgba(0,255,136,0.5);">-</div>
-    <div class="card-desc">Nombre de joueurs réellement connectés (mis à jour toutes les 5s).</div>
-  </div>
-
-  <!-- ===== ANNONCES ===== -->
-  <div class="card">
-    <h2 style="color:#00d2ff;">📢 Diffuseur d'Annonce</h2>
-    <input type="text" id="admin-broadcast-text" placeholder="Message global...">
-    <button class="btn-blue" onclick="adminBroadcast()">Diffuser l'annonce 🚀</button>
-  </div>
-
-  <!-- ===== AJUSTER DEVISES ===== -->
-  <div class="card" style="border-color: rgba(248,181,0,0.55);">
-    <h2 style="color:#f8b500;">💰 Ajuster Pièces / Points / Trophées</h2>
-    <select id="admin-adjust-mode" onchange="toggleAdjustInputs()">
-      <option value="all"> Tout le monde</option>
-      <option value="pseudo">👤 Par pseudo</option>
-      <option value="random">🎲 Aléatoire</option>
-    </select>
-    <input type="text" id="admin-adjust-pseudo" placeholder="Pseudo exact..." style="display:none;">
-    <input type="number" id="admin-adjust-count" placeholder="Nb de joueurs (X)" value="1" style="display:none;">
-    <div class="row">
-      <select id="admin-adjust-currency">
-        <option value="coins">🪙 Pièces</option>
-        <option value="points">⚡ Points</option>
-        <option value="trophies">🏆 Trophées</option>
-      </select>
-      <input type="number" id="admin-adjust-amount" placeholder="Montant (+ donner / - retirer)" value="100">
-    </div>
-    <button class="btn-gold" onclick="adminAdjustCurrency(this)">Appliquer ⚡</button>
-    <div id="admin-adjust-result" class="small-result"></div>
-  </div>
-
-  <!-- ===== AVENTURE : FLAGS & VIES/JOKERS ===== -->
-  <div class="card" style="border-color: rgba(255, 107, 169, 0.55);">
-    <h2 style="color:#ff6ba9;">🏰 Aventure — Flags, Étoiles, Vies & Jokers</h2>
-    <div class="card-desc">
-      Donne les flags de déblocage des mondes saisonniers + ajuste les étoiles, vies et jokers.
-    </div>
-    <div style="display:flex; gap:6px; margin-bottom: 10px;">
-      <input type="text" id="admin-adv-username" placeholder="Pseudo exact..." style="flex:1; margin:0;">
-      <button class="btn-blue btn-sm" onclick="adminForceRefresh(this)" style="flex:0 0 auto; width:auto; padding:10px 14px;">🔄</button>
-    </div>
-
-    <div style="background:rgba(255,255,255,0.04); border-radius:10px; padding:10px; margin:10px 0;">
-      <div style="font-size:11px; color:#f8b500; font-weight:bold; margin-bottom:8px;">🌍 Flags de saison</div>
-      <label style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-        <input type="checkbox" id="admin-adv-halloween" style="width:auto; margin:0;">
-        🎃 Débloquer Halloween (Mondes 4-6)
-      </label>
-      <label style="display:flex; align-items:center; gap:8px;">
-        <input type="checkbox" id="admin-adv-noel" style="width:auto; margin:0;">
-        🎄 Débloquer Noël (Mondes 7-9)
-      </label>
-    </div>
-
-    <div style="background:rgba(255,255,255,0.04); border-radius:10px; padding:10px; margin:10px 0;">
-      <div style="font-size:11px; color:#ff4b2b; font-weight:bold; margin-bottom:8px;">⭐ Étoiles & 🏰 Étage max</div>
-      <div class="row">
-        <div style="flex:1;">
-          <label>⭐ Étoiles par monde (max 240)</label>
-          <input type="number" id="admin-adv-stars" placeholder="240" min="0" max="240">
+    <!-- LOGIN -->
+    <div id="login-screen">
+        <div class="login-card">
+            <h1>⚡ ADMIN BLITZ</h1>
+            <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">Accès restreint aux administrateurs.</p>
+            <input type="password" id="admin-password" placeholder="Mot de passe administrateur" style="margin-bottom: 15px; text-align: center;">
+            <button class="btn btn-primary" style="width: 100%;" onclick="login()">Se Connecter</button>
+            <p id="login-error" style="color: var(--neon-red); font-size: 12px; margin-top: 10px; display: none;"></p>
         </div>
-        <div style="flex:1;">
-          <label>🏰 Étage max (1-1800)</label>
-          <input type="number" id="admin-adv-floor" placeholder="1800" min="0" max="1800">
+    </div>
+
+    <!-- APP -->
+    <div id="app-screen" style="display: none; flex: 1; flex-direction: column;">
+        <header>
+            <div class="logo">⚡ CHIFFRE BLITZ ADMIN</div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <div class="status-badge"><span class="dot"></span> En ligne : <span id="online-count">0</span></div>
+                <button class="btn btn-red btn-sm" onclick="logout()">Déconnexion</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <nav class="sidebar">
+                <button class="tab-btn active" data-tab="tab-global" onclick="switchTab('tab-global', this)">📊 Global</button>
+                <button class="tab-btn" data-tab="tab-events" onclick="switchTab('tab-events', this)">🎮 Événements & Saisons</button>
+                <button class="tab-btn" data-tab="tab-maint" onclick="switchTab('tab-maint', this)">🛠️ Maintenance</button>
+                <button class="tab-btn" data-tab="tab-players" onclick="switchTab('tab-players', this)">👤 Joueurs</button>
+            </nav>
+
+            <main class="main-content">
+                
+                <!-- TAB: GLOBAL -->
+                <div id="tab-global" class="tab-content active">
+                    <div class="card">
+                        <h2>📢 Annonce Globale</h2>
+                        <textarea id="broadcast-msg" placeholder="Message à envoyer à tous les joueurs connectés..."></textarea>
+                        <button class="btn btn-gold" style="margin-top: 10px;" onclick="broadcast()">Envoyer à tous</button>
+                    </div>
+                </div>
+
+                <!-- TAB: EVENTS -->
+                <div id="tab-events" class="tab-content">
+                    <div class="card">
+                        <h2>⚡ Événements Globaux</h2>
+                        <div id="events-list"></div>
+                        <button class="btn btn-primary" style="margin-top: 15px;" onclick="saveEvents()">Sauvegarder les événements</button>
+                    </div>
+                    <div class="card">
+                        <h2>📅 Saisons</h2>
+                        <div class="grid-2">
+                            <div>
+                                <label>Forcer la saison active</label>
+                                <select id="season-override">
+                                    <option value="auto">Automatique (Date réelle)</option>
+                                    <option value="s1">Saison 1 (Felin & Neon)</option>
+                                    <option value="s2">Saison 2 (Halloween)</option>
+                                    <option value="s3">Saison 3 (Noël)</option>
+                                </select>
+                                <button class="btn btn-sm btn-gold" style="margin-top:10px;" onclick="setSeason()">Appliquer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: MAINTENANCE -->
+                <div id="tab-maint" class="tab-content">
+                    <div class="card">
+                        <h2>🛠️ Mode Maintenance</h2>
+                        <div class="event-row">
+                            <span class="event-name">Activer la maintenance (Bloque les nouvelles connexions)</span>
+                            <label class="switch">
+                                <input type="checkbox" id="maint-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div style="margin-top: 20px;" class="grid-2">
+                            <div>
+                                <label>Message affiché aux joueurs</label>
+                                <input type="text" id="maint-msg" placeholder="Message de maintenance...">
+                            </div>
+                            <div>
+                                <label>Code Bypass (Admin/Testeurs)</label>
+                                <input type="text" id="maint-code" placeholder="Laisser vide pour désactiver">
+                            </div>
+                        </div>
+                        <button class="btn btn-red" style="margin-top: 20px;" onclick="saveMaintenance()">Sauvegarder la Maintenance</button>
+                    </div>
+                </div>
+
+                <!-- TAB: PLAYERS -->
+                <div id="tab-players" class="tab-content">
+                    <div class="card">
+                        <h2>🔍 Recherche Joueur</h2>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="player-search" placeholder="Pseudo exact du joueur...">
+                            <button class="btn btn-primary" onclick="searchPlayer()">Charger</button>
+                        </div>
+                    </div>
+
+                    <div id="player-actions" style="display: none;">
+                        <div class="grid-2">
+                            <div class="card">
+                                <h2>🎁 Cadeaux & Ajustements</h2>
+                                <div class="grid-2" style="margin-bottom: 10px;">
+                                    <div>
+                                        <label>Devise</label>
+                                        <select id="gift-currency">
+                                            <option value="coins">Pièces 🪙</option>
+                                            <option value="points">Points ⚡</option>
+                                            <option value="trophies">Trophées 👑</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label>Quantité (+ ou -)</label>
+                                        <input type="number" id="gift-amount" value="1000">
+                                    </div>
+                                </div>
+                                <button class="btn btn-green" style="width:100%; margin-bottom:10px;" onclick="giveGift()">Donner au joueur</button>
+                                
+                                <hr style="border-color: var(--border); margin: 15px 0;">
+                                <label>Ajustement de masse</label>
+                                <div class="grid-2" style="margin-bottom:10px;">
+                                    <select id="adj-mode">
+                                        <option value="all">Tous les joueurs</option>
+                                        <option value="random">Aléatoire (X joueurs)</option>
+                                    </select>
+                                    <input type="number" id="adj-count" placeholder="Nb (si aléatoire)" value="1">
+                                </div>
+                                <button class="btn btn-gold" style="width:100%;" onclick="adjustCurrency()">Ajuster Masse</button>
+                            </div>
+
+                            <div class="card">
+                                <h2>🎨 Cosmétiques & Trophées</h2>
+                                <label>Objet / Pouvoir</label>
+                                <select id="give-item"></select>
+                                <button class="btn btn-primary btn-sm" style="width:100%; margin: 10px 0;" onclick="giveCosmetic('item')">Donner Objet</button>
+                                
+                                <label>Trophée</label>
+                                <select id="give-trophy"></select>
+                                <button class="btn btn-gold btn-sm" style="width:100%; margin-top: 10px;" onclick="giveCosmetic('trophy')">Débloquer Trophée</button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h2>🗺️ Aventure & Tour</h2>
+                            <div class="grid-4">
+                                <div><label>Vies (0-10)</label><input type="number" id="adv-lives" min="0" max="10"></div>
+                                <div><label>Jokers Temps</label><input type="number" id="adv-jt" min="0"></div>
+                                <div><label>Jokers Bouclier</label><input type="number" id="adv-js" min="0"></div>
+                                <div><label>Étoiles / Monde</label><input type="number" id="adv-stars" min="0" max="240"></div>
+                                <div><label>Étage Max</label><input type="number" id="adv-floor" min="0"></div>
+                                <div style="display:flex; align-items:center; gap:10px; margin-top:20px;">
+                                    <input type="checkbox" id="adv-halloween"> <label style="margin:0; text-transform:none;">Flag S2 (Halloween)</label>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:10px; margin-top:20px;">
+                                    <input type="checkbox" id="adv-noel"> <label style="margin:0; text-transform:none;">Flag S3 (Noël)</label>
+                                </div>
+                            </div>
+                            <button class="btn btn-green" style="margin-top: 15px;" onclick="saveAdventure()">Sauvegarder Aventure</button>
+                            <button class="btn btn-primary" style="margin-top: 15px; margin-left:10px;" onclick="forceRefresh()">Forcer Refresh Client</button>
+                        </div>
+
+                        <div class="grid-2">
+                            <div class="card">
+                                <h2>🔒 Compte & Sécurité</h2>
+                                <label>Changer la Région</label>
+                                <input type="text" id="player-region" placeholder="Ex: Île-de-France">
+                                <button class="btn btn-sm btn-primary" style="margin-top:10px;" onclick="setRegion()">Appliquer</button>
+                                
+                                <hr style="border-color: var(--border); margin: 20px 0;">
+                                <label>Réinitialiser Mot de Passe (Clé de récupération requise)</label>
+                                <input type="text" id="recovery-key" placeholder="XXXX-XXXX-XXXX">
+                                <button class="btn btn-sm btn-red" style="margin-top:10px;" onclick="resetPassword()">Réinitialiser</button>
+                            </div>
+                            <div class="card">
+                                <h2>📜 Logs du Joueur</h2>
+                                <div style="max-height: 250px; overflow-y: auto;">
+                                    <table>
+                                        <thead><tr><th>Action</th><th>Détail</th><th>Devise</th></tr></thead>
+                                        <tbody id="logs-body"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
         </div>
-      </div>
     </div>
 
-    <div style="background:rgba(255,255,255,0.04); border-radius:10px; padding:10px; margin:10px 0;">
-      <div style="font-size:11px; color:#ff4b2b; font-weight:bold; margin-bottom:8px;">❤️ Vies & 🎴 Jokers</div>
-      <div class="row">
-        <div style="flex:1;">
-          <label>❤️ Vies (max 10)</label>
-          <input type="number" id="admin-adv-lives" placeholder="10" min="0" max="10">
-        </div>
-        <div style="flex:1;">
-          <label>⏱️ Jokers temps</label>
-          <input type="number" id="admin-adv-jt" placeholder="50" min="0">
-        </div>
-        <div style="flex:1;">
-          <label>🛡️ Jokers bouclier</label>
-          <input type="number" id="admin-adv-js" placeholder="50" min="0">
-        </div>
-      </div>
-    </div>
+    <div id="toast-container"></div>
 
-    <div class="row">
-      <button class="btn-orange" onclick="adminGiveAdventure(this)">Appliquer ⚡</button>
-      <button class="btn-gold" onclick="adminUnlockAllWorlds()">🔓 Tout débloquer</button>
-    </div>
-    <div id="admin-adv-result" class="small-result"></div>
-  </div>
+    <script>
+        const socket = io(window.location.origin, { transports: ['websocket', 'polling'] });
+        const state = {
+            isAdmin: false,
+            catalog: { items: [], trophies: [] },
+            events: {},
+            schedules: {},
+            currentPlayer: ''
+        };
 
-  <!-- ===== JOURNAL DES TRANSACTIONS ===== -->
-  <div class="card">
-    <h2 style="color:#38ef7d;">📜 Journal des transactions</h2>
-    <div class="card-desc">Vérifie l'historique d'un joueur (pertes, achats, gains, ajustements).</div>
-    <input type="text" id="admin-log-username" placeholder="Pseudo (vide = tout le monde)">
-    <button class="btn-green" onclick="adminGetLogs(this)">Consulter 🔍</button>
-    <div id="admin-logs" style="max-height:300px; overflow-y:auto; font-size:11px; margin-top:10px; background: #000; padding: 10px; border-radius: 8px;"></div>
-  </div>
-
-  <!-- ===== ATTRIBUER OBJET / TROPHÉE ===== -->
-  <div class="card" style="border-color: rgba(56,239,125,0.55);">
-    <h2 style="color:#38ef7d;">🎁 Attribuer objet / trophée</h2>
-    <div class="card-desc">Compense un bug ou offre : cadres, grilles, avatars, titres, packs, pouvoirs, trophées. Marche hors-ligne.</div>
-    <input type="text" id="admin-give-username" placeholder="Pseudo exact...">
-    <select id="admin-give-item">
-        <option value="">-- Charger le catalogue... --</option>
-    </select>
-    <button class="btn-gold" onclick="adminGiveItem(this)">Attribuer ⚡</button>
-    <div id="admin-give-result" class="small-result"></div>
-  </div>
-
-  <!-- ===== RÉINITIALISER CODE ===== -->
-  <div class="card" style="border-color: rgba(255,75,43,0.55);">
-    <h2 style="color:#ff4b2b;">🔑 Réinitialiser un code secret</h2>
-    <div class="card-desc">
-      Le joueur doit te donner son <b>pseudo</b> + sa <b>clé de récupération</b>.
-      <br>Si la clé est correcte → un nouveau code est généré.
-    </div>
-    <input type="text" id="admin-reset-username" placeholder="Pseudo exact du joueur">
-    <input type="text" id="admin-reset-key" placeholder="Clé de récupération (XXXX-XXXX-XXXX)">
-    <button class="btn-orange" onclick="adminResetPassword(this)">Générer un nouveau code ⚡</button>
-    <div id="admin-reset-result" class="small-result"></div>
-  </div>
-
-  <!-- ===== CONTRÔLE DE SAISON ===== -->
-  <div class="card" style="border-color: rgba(255,138,0,0.55);">
-    <h2 style="color:#ff8a00;">🗓️ Contrôle de Saison</h2>
-    <div class="notice warning">
-      Permet de forcer temporairement la saison active pour tester le Pass.
-    </div>
-    <select id="admin-season-select">
-      <option value="auto">⏱️ Auto — date réelle du serveur</option>
-      <option value="s1">🐱 S1 — Félin & Néon</option>
-      <option value="s2">🎃 S2 — Halloween</option>
-      <option value="s3">🎄 S3 — Noël</option>
-    </select>
-    <button class="btn-orange" onclick="adminSetSeason(this)">Appliquer la saison 🎃</button>
-    <div id="admin-season-result" class="small-result"></div>
-  </div>
-
-  <!-- ===== DATES DES SAISONS ===== -->
-  <div class="card" style="border-color: rgba(56,239,125,0.55);">
-    <h2 style="color:#38ef7d;">📅 Dates des Saisons</h2>
-    <div class="notice" style="background: rgba(56,239,125,0.08); border-color: rgba(56,239,125,0.35); color: #c9f7d8;">
-      Définis les dates de début et fin de chaque saison.
-    </div>
-    <div id="season-dates-rows"></div>
-    <button class="btn-green" onclick="saveSeasonDates(this)">💾 Enregistrer les dates</button>
-    <div id="admin-dates-result" class="small-result"></div>
-  </div>
-
-  <!-- ===== ÉVÉNEMENTS & ABUSES ===== -->
-  <div class="card">
-    <h2 style="color:#38ef7d;">⚡ Planification des Événements & Abuses</h2>
-    <div id="admin-schedules-container"></div>
-    <button class="btn-blue" onclick="saveAdminSchedules(this)">Sauvegarder les Configurations 💾</button>
-  </div>
-
-</div>
-
-<!-- ===== BOUTON FERMER LE PANEL (MOBILE) ===== -->
-<button id="admin-close-btn" aria-label="Fermer le panel">✕</button>
-
-<!-- ===== TOAST CONTAINER ===== -->
-<div id="toast-container"></div>
-
-<script>
-/* ============================================================
-TOAST SYSTEM
-============================================================ */
-function showToast(message, type = 'info', duration = 3500) {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-    
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = message;
-    container.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.animation = 'toastOut 0.3s ease forwards';
-        setTimeout(() => toast.remove(), 300);
-    }, duration);
-}
-
-/* ============================================================
-CONNEXION SOCKET.IO
-============================================================ */
-const SERVER_URL = "https://chiffre-blitz-server.onrender.com";
-let socket = null;
-let isAdminLoggedIn = false;
-
-function connectSocket() {
-    socket = io(SERVER_URL, {
-        reconnection: true,
-        reconnectionAttempts: 10,
-        reconnectionDelay: 2000,
-        query: { v: "1.3.0" }
-    });
-
-    socket.on("connect", () => {
-        const el = document.getElementById("server-status");
-        if (el) { el.innerText = "✅ Connecté au serveur"; el.className = "status ok"; }
-        
-        // Si on était déjà loggé, on ne remet pas le dashboard (le serveur a perdu l'état isAdmin)
-        // On force la reconnexion visuelle
-        if (isAdminLoggedIn) {
-            showToast("⚠️ Reconnexion serveur. Veuillez vous reconnecter.", "info");
-            logoutAdmin();
+        // --- UI HELPERS ---
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
         }
-    });
 
-    socket.on("disconnect", () => {
-        const el = document.getElementById("server-status");
-        if (el) { el.innerText = "❌ Déconnecté du serveur"; el.className = "status ko"; }
-        if (isAdminLoggedIn) {
-            showToast("❌ Connexion perdue avec le serveur.", "error");
-            logoutAdmin();
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
         }
-    });
 
-    /* ============================================================
-    AUTH ADMIN
-    ============================================================= */
-    socket.on("admin_auth_fail", (msg) => {
-        document.getElementById("admin-login-error").innerText = msg || "Mot de passe incorrect";
-        showToast("❌ " + (msg || "Mot de passe incorrect"), "error");
-        const btn = document.getElementById('btn-login');
-        if (btn) { btn.disabled = false; btn.innerText = 'CONNEXION STUDIO ⚡'; }
-    });
-
-    socket.on("admin_auth_success", (data) => {
-        isAdminLoggedIn = true;
-        document.getElementById("admin-login-error").innerText = "";
-        document.getElementById("admin-login-section").style.display = "none";
-        document.getElementById("admin-dashboard-section").style.display = "block";
-        renderAdminSchedules(data.schedules || {});
-        socket.emit('admin_get_season_dates');
-        socket.emit('admin_get_catalog');
-        socket.emit('admin_get_maintenance');
-        showToast("✅ Connexion réussie ! Bienvenue.", "success");
-    });
-
-    /* ============================================================
-    MODE MAINTENANCE
-    ============================================================= */
-    socket.on('maintenance_state', (d) => {
-        document.getElementById('maint-enabled').checked = !!d.enabled;
-        if (d.message) document.getElementById('maint-message').value = d.message;
-        if (d.bypassCode) document.getElementById('maint-bypass-code').value = d.bypassCode;
-
-        const st = document.getElementById('maint-status');
-        if (d.enabled) {
-            st.style.color = '#ff4b2b';
-            st.textContent = '🔴 ACTIVE depuis ' + new Date(d.since).toLocaleTimeString() + ' · ' + d.online + ' joueur(s) en ligne';
-        } else {
-            st.style.color = '#00ff88';
-            st.textContent = '🟢 Désactivée · ' + d.online + ' joueur(s) en ligne';
+        // --- AUTH ---
+        function login() {
+            const pwd = document.getElementById('admin-password').value;
+            socket.emit('admin_auth', pwd);
         }
-    });
 
-    /* ============================================================
-    CONTRÔLE DE SAISON
-    ============================================================= */
-    socket.on("admin_season_result", (data) => {
-        const result = document.getElementById("admin-season-result");
-        if (!result) return;
-        if (data && data.ok) {
-            const names = { s1: "🐱 S1 — Félin & Néon", s2: "🎃 S2 — Halloween", s3: "🎄 S3 — Noël" };
-            const label = names[data.season] || data.season || "Auto";
-            result.style.color = "#00ff88";
-            result.style.background = "rgba(0,255,136,0.1)";
-            result.innerText = "✅ Saison active : " + label;
-            showToast("✅ Saison changée : " + label, "success");
-        } else {
-            result.style.color = "#ff4b2b";
-            result.style.background = "rgba(255,75,43,0.1)";
-            result.innerText = "❌ Erreur : saison non modifiée.";
-            showToast("❌ Erreur saison", "error");
+        function logout() {
+            location.reload();
         }
-    });
 
-    /* ============================================================
-    ÉVÉNEMENTS & ABUSES
-    ============================================================= */
-    socket.on("admin_schedule_saved", () => { 
-        showToast("✅ Événements mis à jour côté serveur !", "success"); 
-    });
-
-    /* ============================================================
-    DATES DES SAISONS
-    ============================================================= */
-    socket.on('admin_season_dates', (list) => {
-        const rows = document.getElementById('season-dates-rows');
-        if (!rows) return;
-        rows.innerHTML = '';
-        (list || []).forEach(s => {
-            const row = document.createElement('div');
-            row.className = 'season-date-row';
-            row.innerHTML = `<span class="season-label">${s.id.toUpperCase()}</span>
-              <input type="date" id="sd-${s.id}-start" value="${s.start}">
-              <input type="date" id="sd-${s.id}-end" value="${s.end}">`;
-            rows.appendChild(row);
-        });
-    });
-
-    /* ============================================================
-    AJUSTER DEVISES
-    ============================================================= */
-    socket.on('admin_adjust_result', (d) => {
-        const el = document.getElementById('admin-adjust-result');
-        if (el) { 
-            el.style.color = d.ok ? '#00ff88' : '#ff4b2b'; 
-            el.style.background = d.ok ? 'rgba(0,255,136,0.1)' : 'rgba(255,75,43,0.1)';
-            el.innerText = d.message || ''; 
+        // --- GLOBAL ---
+        function broadcast() {
+            const msg = document.getElementById('broadcast-msg').value;
+            if (!msg) return showToast('Message vide', 'error');
+            socket.emit('admin_broadcast_message', msg);
+            showToast('Annonce envoyée !', 'success');
+            document.getElementById('broadcast-msg').value = '';
         }
-        showToast(d.ok ? "✅ " + d.message : "❌ " + d.message, d.ok ? "success" : "error");
-    });
 
-    /* ============================================================
-    COMPTEUR EN LIGNE
-    ============================================================= */
-    setInterval(() => { 
-        if (socket && socket.connected && isAdminLoggedIn) {
-            socket.emit('admin_get_stats'); 
-        }
-    }, 5000);
-    
-    socket.on('admin_stats', (s) => {
-        const el = document.getElementById('admin-online-count');
-        if (el) el.innerText = s.online;
-    });
-
-    /* ============================================================
-    JOURNAL DES TRANSACTIONS
-    ============================================================= */
-    socket.on('admin_logs_data', (d) => {
-        const el = document.getElementById('admin-logs');
-        if (!el) return;
-        if (!d.rows || d.rows.length === 0) {
-            el.innerHTML = '<div style="text-align:center; color:#aaa; padding:10px;">Aucun log trouvé.</div>';
-            return;
-        }
-        el.innerHTML = (d.rows || []).map(r =>
-            `<div style="border-bottom:1px solid #333; padding:6px 2px;">
-              <b style="color:#00d2ff;">${r.username}</b>
-              <span style="color:#f8b500;">[${r.action}]</span> ${r.detail || ''}
-              ${r.amount !== null && r.amount !== undefined ? `<b style="color:${r.amount >= 0 ? '#00ff88' : '#ff4b2b'};">${r.amount > 0 ? '+' : ''}${r.amount} ${r.currency || ''}</b>` : ''}
-              → sol:${r.balance_after ?? '-'}
-              <i style="color:#777; font-size:10px; display:block; margin-top:2px;">${new Date(r.created_at).toLocaleString()}</i>
-            </div>`).join('');
-    });
-
-    /* ============================================================
-    ATTRIBUER OBJET / TROPHÉE
-    ============================================================= */
-    socket.on('admin_catalog', (cat) => {
-        const sel = document.getElementById('admin-give-item');
-        if (!sel) return;
-        sel.innerHTML = '<option value="">-- Sélectionner un objet --</option>';
-        const groups = { frame: '🛡️ Cadres', theme: '🎨 Grilles', avatar: '🐱 Avatars', title: '🏅 Titres', pack: '🎁 Packs', power: '⚡ Pouvoirs' };
-        for (const g in groups) {
-            const opts = (cat.items || []).filter(i => i.type === g);
-            if (!opts.length) continue;
-            const og = document.createElement('optgroup');
-            og.label = groups[g];
-            opts.forEach(i => { const o = document.createElement('option'); o.value = i.id; o.textContent = i.id; og.appendChild(o); });
-            sel.appendChild(og);
-        }
-        const tg = document.createElement('optgroup');
-        tg.label = '🏆 Trophées';
-        (cat.trophies || []).forEach(t => { const o = document.createElement('option'); o.value = 'trophy:' + t.id; o.textContent = t.name; tg.appendChild(o); });
-        sel.appendChild(tg);
-    });
-
-    socket.on('admin_give_result', (d) => {
-        const el = document.getElementById('admin-give-result');
-        if (el) { 
-            el.style.color = d.ok ? '#00ff88' : '#ff4b2b'; 
-            el.style.background = d.ok ? 'rgba(0,255,136,0.1)' : 'rgba(255,75,43,0.1)';
-            el.innerText = d.message || ''; 
-        }
-        showToast(d.ok ? "✅ " + d.message : "❌ " + d.message, d.ok ? "success" : "error");
-    });
-
-    /* ============================================================
-    AVENTURE — FLAGS SAISONS & VIES/JOKERS
-    ============================================================= */
-    socket.on('admin_adv_result', (d) => {
-        const el = document.getElementById('admin-adv-result');
-        if (!el) return;
-        el.style.color = d.ok ? '#00ff88' : '#ff4b2b';
-        el.style.background = d.ok ? 'rgba(0,255,136,0.1)' : 'rgba(255,75,43,0.1)';
-        el.innerText = d.message || '';
-        showToast(d.ok ? "✅ " + d.message : "❌ " + d.message, d.ok ? "success" : "error");
-    });
-
-    socket.on('admin_force_refresh_result', (d) => {
-        const el = document.getElementById('admin-adv-result');
-        if (!el) return;
-        el.style.color = d.ok ? '#00ff88' : '#ff4b2b';
-        el.style.background = d.ok ? 'rgba(0,255,136,0.1)' : 'rgba(255,75,43,0.1)';
-        el.innerText = d.ok ? `✅ ${d.username} rafraîchi !` : `❌ ${d.message}`;
-        showToast(d.ok ? "✅ Rafraîchi !" : "❌ " + d.message, d.ok ? "success" : "error");
-    });
-
-    /* ============================================================
-    RÉINITIALISER CODE SECRET
-    ============================================================= */
-    socket.on('admin_reset_result', (d) => {
-        const el = document.getElementById('admin-reset-result');
-        if (!el) return;
-        el.style.color = d.ok ? '#00ff88' : '#ff4b2b';
-        el.style.background = d.ok ? 'rgba(0,255,136,0.1)' : 'rgba(255,75,43,0.1)';
-        el.innerText = d.message || '';
-        if (d.ok && d.newCode) {
-            navigator.clipboard.writeText(d.newCode).then(() => {
-                showToast('✅ Nouveau code généré et copié !<br><b>' + d.newCode + '</b>', "success", 5000);
-            }).catch(() => {
-                showToast('✅ Nouveau code généré :<br><b>' + d.newCode + '</b>', "success", 5000);
-            });
-        } else {
-            showToast("❌ " + (d.message || "Erreur"), "error");
-        }
-    });
-}
-
-connectSocket();
-
-/* ============================================================
-UI FUNCTIONS
-============================================================ */
-function authAdmin() {
-    const pass = document.getElementById("admin-password-input").value;
-    if (!pass) {
-        showToast("❌ Entrez le mot de passe", "error");
-        return;
-    }
-    if (!socket || !socket.connected) {
-        showToast("❌ Non connecté au serveur", "error");
-        return;
-    }
-    const btn = document.getElementById('btn-login');
-    btn.disabled = true;
-    btn.innerText = 'Connexion...';
-    document.getElementById("admin-login-error").innerText = "";
-    socket.emit("admin_auth", pass);
-}
-
-function logoutAdmin() {
-    isAdminLoggedIn = false;
-    document.getElementById("admin-dashboard-section").style.display = "none";
-    document.getElementById("admin-login-section").style.display = "block";
-    document.getElementById("admin-password-input").value = "";
-    const btn = document.getElementById('btn-login');
-    if (btn) { btn.disabled = false; btn.innerText = 'CONNEXION STUDIO ⚡'; }
-    showToast("🚪 Déconnecté", "info");
-}
-
-function saveMaint() {
-    const v = {
-        enabled: document.getElementById('maint-enabled').checked,
-        message: document.getElementById('maint-message').value,
-        bypassCode: document.getElementById('maint-bypass-code').value
-    };
-    if (v.enabled && !confirm("Activer la maintenance ? Les joueurs seront déconnectés dans 60 s.")) return;
-    socket.emit('admin_set_maintenance', v);
-    showToast("💾 Enregistrement...", "info");
-}
-
-function refreshMaint() {
-    socket.emit('admin_get_maintenance');
-}
-
-function generateBypassCode() {
-    const code = Math.random().toString(36).slice(2,10);
-    document.getElementById('maint-bypass-code').value = code;
-    showToast("🎲 Code généré : " + code, "info");
-}
-
-function copyBypassCode() {
-    const code = document.getElementById('maint-bypass-code').value;
-    if (!code) { showToast("❌ Aucun code à copier", "error"); return; }
-    navigator.clipboard.writeText(code).then(() => showToast("📋 Code copié !", "success"));
-}
-
-function adminBroadcast() {
-    const text = document.getElementById("admin-broadcast-text").value.trim();
-    if (!text) { showToast("❌ Entre un message d'annonce !", "error"); return; }
-    socket.emit("admin_broadcast_message", text);
-    document.getElementById("admin-broadcast-text").value = "";
-    showToast("📢 Annonce diffusée !", "success");
-}
-
-function adminSetSeason(btn) {
-    const select = document.getElementById("admin-season-select");
-    const seasonId = select.value;
-    btn.disabled = true;
-    btn.innerText = "Envoi...";
-    socket.emit("admin_set_season", seasonId);
-    setTimeout(() => { btn.disabled = false; btn.innerText = "Appliquer la saison 🎃"; }, 1500);
-}
-
-const EVENT_NAMES = {
-    coinRush: "🪙 Coin Rush (Pièces x2)",
-    rankShield: "🛡️ Rank Shield (Zéro perte)",
-    expressoMatch: "⚡ Expresso Match (20s)",
-    chaosMode: "🌪️ Chaos Mode (Malus auto)",
-    jackpotEclair: "🎁 Jackpot Éclair",
-    tugOfWarMode: "🪢 Mode Corde Raide (Tug-of-War)",
-    halloweenMode: "🎃 Mode Exclusif Halloween (Chasse Hantée)",
-    noelMode: "🎄 Mode Exclusif Noël (Course aux Cadeaux)"
-};
-
-function renderAdminSchedules(schedules) {
-    const container = document.getElementById("admin-schedules-container");
-    container.innerHTML = "";
-    for (let key in EVENT_NAMES) {
-        const s = schedules[key] || { manual: false, start: null, end: null };
-        const startStr = s.start ? new Date(s.start).toISOString().slice(0, 16) : "";
-        const endStr = s.end ? new Date(s.end).toISOString().slice(0, 16) : "";
-        const row = document.createElement("details");
-        row.innerHTML = `
-          <summary>${EVENT_NAMES[key]}</summary>
-          <div style="padding-top:10px;">
-          <label style="display:flex; align-items:center; gap:6px; margin:6px 0;">
-            <input type="checkbox" id="admin-manual-${key}" ${s.manual ? "checked" : ""} style="width:auto; margin:0;">
-            Actif (Forcé)
-          </label>
-          <label>Début :</label>
-          <input type="datetime-local" id="admin-start-${key}" value="${startStr}">
-          <label>Fin :</label>
-          <input type="datetime-local" id="admin-end-${key}" value="${endStr}">
-          </div>
-        `;
-        container.appendChild(row);
-    }
-}
-
-function saveAdminSchedules(btn) {
-    const EVENT_KEYS = ["coinRush", "rankShield", "expressoMatch", "chaosMode", "jackpotEclair", "tugOfWarMode", "halloweenMode", "noelMode"];
-    const schedulesData = {};
-    EVENT_KEYS.forEach(key => {
-        const manualEl = document.getElementById(`admin-manual-${key}`);
-        const startEl = document.getElementById(`admin-start-${key}`);
-        const endEl = document.getElementById(`admin-end-${key}`);
-        if (manualEl && startEl && endEl) {
-            schedulesData[key] = {
-                manual: manualEl.checked,
-                start: startEl.value ? new Date(startEl.value).getTime() : null,
-                end: endEl.value ? new Date(endEl.value).getTime() : null
+        // --- EVENTS ---
+        function renderEvents() {
+            const container = document.getElementById('events-list');
+            container.innerHTML = '';
+            const eventNames = {
+                coinRush: '🪙 Coin Rush (Pièces x2)',
+                rankShield: '🛡️ Rank Shield (Zéro perte)',
+                expressoMatch: '⚡ Expresso Match (20s)',
+                chaosMode: '🌪️ Chaos Mode (Malus aléatoires)',
+                jackpotEclair: '🎁 Jackpot Éclair (Coffres)',
+                tugOfWarMode: '🪢 Corde Raide',
+                halloweenMode: '🎃 Chasse Hantée',
+                noelMode: '🎄 Course aux Cadeaux'
             };
+
+            for (const [key, name] of Object.entries(eventNames)) {
+                const isActive = state.events[key] || false;
+                const row = document.createElement('div');
+                row.className = 'event-row';
+                row.innerHTML = `
+                    <span class="event-name">${name}</span>
+                    <label class="switch">
+                        <input type="checkbox" data-event="${key}" ${isActive ? 'checked' : ''}>
+                        <span class="slider"></span>
+                    </label>
+                `;
+                container.appendChild(row);
+            }
         }
-    });
-    btn.disabled = true;
-    btn.innerText = "Sauvegarde...";
-    socket.emit("admin_update_schedule", schedulesData);
-    setTimeout(() => { btn.disabled = false; btn.innerText = "Sauvegarder les Configurations 💾"; }, 1500);
-}
 
-function saveSeasonDates(btn) {
-    const dates = {};
-    ['s1', 's2', 's3'].forEach(id => {
-        const st = document.getElementById(`sd-${id}-start`);
-        const en = document.getElementById(`sd-${id}-end`);
-        if (st && en) dates[id] = { start: st.value, end: en.value };
-    });
-    btn.disabled = true;
-    btn.innerText = "Enregistrement...";
-    socket.emit('admin_set_season_dates', dates);
-    setTimeout(() => { btn.disabled = false; btn.innerText = "💾 Enregistrer les dates"; }, 1500);
-}
-
-function toggleAdjustInputs() {
-    const mode = document.getElementById('admin-adjust-mode').value;
-    document.getElementById('admin-adjust-pseudo').style.display = (mode === 'pseudo') ? 'block' : 'none';
-    document.getElementById('admin-adjust-count').style.display = (mode === 'random') ? 'block' : 'none';
-}
-
-function adminAdjustCurrency(btn) {
-    btn.disabled = true;
-    btn.innerText = "Application...";
-    socket.emit('admin_adjust_currency', {
-        mode: document.getElementById('admin-adjust-mode').value,
-        currency: document.getElementById('admin-adjust-currency').value,
-        amount: parseInt(document.getElementById('admin-adjust-amount').value) || 0,
-        pseudo: document.getElementById('admin-adjust-pseudo').value.trim(),
-        count: parseInt(document.getElementById('admin-adjust-count').value) || 1
-    });
-    setTimeout(() => { btn.disabled = false; btn.innerText = "Appliquer ⚡"; }, 1500);
-}
-
-function adminGetLogs(btn) {
-    btn.disabled = true;
-    btn.innerText = "Recherche...";
-    socket.emit('admin_get_logs', { username: document.getElementById('admin-log-username').value });
-    setTimeout(() => { btn.disabled = false; btn.innerText = "Consulter 🔍"; }, 1000);
-}
-
-function adminGiveItem(btn) {
-    const username = document.getElementById('admin-give-username').value.trim();
-    const val = document.getElementById('admin-give-item').value;
-    if (!username || !val) { showToast('❌ Pseudo et objet requis.', "error"); return; }
-    const isTrophy = val.startsWith('trophy:');
-    btn.disabled = true;
-    btn.innerText = "Attribution...";
-    socket.emit('admin_give_cosmetic', { username, itemId: isTrophy ? val.slice(7) : val, kind: isTrophy ? 'trophy' : 'item' });
-    setTimeout(() => { btn.disabled = false; btn.innerText = "Attribuer ⚡"; }, 1500);
-}
-
-function adminGiveAdventure(btn) {
-    const username = document.getElementById('admin-adv-username').value.trim();
-    if (!username) { showToast('❌ Pseudo requis.', "error"); return; }
-
-    const payload = {
-        username: username,
-        halloween: document.getElementById('admin-adv-halloween').checked,
-        noel: document.getElementById('admin-adv-noel').checked,
-        lives: document.getElementById('admin-adv-lives').value,
-        jokersTime: document.getElementById('admin-adv-jt').value,
-        jokersShield: document.getElementById('admin-adv-js').value,
-        starsPerWorld: document.getElementById('admin-adv-stars').value,
-        maxFloor: document.getElementById('admin-adv-floor').value
-    };
-
-    payload.lives = payload.lives === '' ? null : parseInt(payload.lives);
-    payload.jokersTime = payload.jokersTime === '' ? null : parseInt(payload.jokersTime);
-    payload.jokersShield = payload.jokersShield === '' ? null : parseInt(payload.jokersShield);
-    payload.starsPerWorld = payload.starsPerWorld === '' ? null : parseInt(payload.starsPerWorld);
-    payload.maxFloor = payload.maxFloor === '' ? null : parseInt(payload.maxFloor);
-
-    btn.disabled = true;
-    btn.innerText = "Application...";
-    socket.emit('admin_give_adventure', payload);
-    setTimeout(() => { btn.disabled = false; btn.innerText = "Appliquer ⚡"; }, 2000);
-}
-
-function adminUnlockAllWorlds() {
-    document.getElementById('admin-adv-halloween').checked = true;
-    document.getElementById('admin-adv-noel').checked = true;
-    document.getElementById('admin-adv-stars').value = 240;
-    document.getElementById('admin-adv-floor').value = 1800;
-    document.getElementById('admin-adv-lives').value = 10;
-    document.getElementById('admin-adv-jt').value = 50;
-    document.getElementById('admin-adv-js').value = 50;
-    showToast("✅ Paramètres remplis. Cliquez sur Appliquer.", "info");
-}
-
-function adminForceRefresh(btn) {
-    const username = document.getElementById('admin-adv-username').value.trim();
-    if (!username) { showToast('❌ Pseudo requis.', "error"); return; }
-    btn.disabled = true;
-    btn.innerText = "🔄";
-    socket.emit('admin_force_refresh', { username });
-    setTimeout(() => { btn.disabled = false; btn.innerText = "🔄"; }, 1500);
-}
-
-function adminResetPassword(btn) {
-    const username = document.getElementById('admin-reset-username').value.trim();
-    const recoveryKey = document.getElementById('admin-reset-key').value.trim();
-    if (!username || !recoveryKey) { showToast('❌ Pseudo et clé requis.', "error"); return; }
-    btn.disabled = true;
-    btn.innerText = "Génération...";
-    socket.emit('admin_reset_password', { username, recoveryKey });
-    setTimeout(() => { btn.disabled = false; btn.innerText = "Générer un nouveau code ⚡"; }, 2000);
-}
-function toggleMaintenance() {
-    const enabled = document.getElementById('maint-toggle').checked;
-    const message = document.getElementById('maint-message').value;
-    const bypassCode = document.getElementById('maint-code').value;
-    const delay = parseInt(document.getElementById('maint-delay').value) || 60; // ⬅️ NOUVEAU
-    
-    socket.emit('admin_set_maintenance', { 
-        enabled: enabled, 
-        message: message, 
-        bypassCode: bypassCode,
-        delay: delay  // ⬅️ On envoie le délai au serveur
-    });
-}
-/* ============================================================
-BOUTON FERMER (MOBILE)
-============================================================ */
-(function(){
-    var btn = document.getElementById('admin-close-btn');
-    var inIframe = (window.self !== window.top);
-    var isMobile = /Android|iPhone|iPad|iPod|Tablet|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2 && Math.min(screen.width, screen.height) < 900);
-    // Dans l'overlay mobile (iframe) : la croix est déjà dans la barre du haut → on masque celle-ci
-    if (!isMobile || inIframe) { btn.style.display = 'none'; }
-    btn.addEventListener('click', function(){
-        if (inIframe) {
-            window.parent.postMessage({ cbAction: 'close_admin', action: 'close_admin_panel' }, '*');
-            return;
+        function saveEvents() {
+            const toggles = document.querySelectorAll('[data-event]');
+            const newEvents = { ...state.events };
+            toggles.forEach(t => {
+                newEvents[t.dataset.event] = t.checked;
+            });
+            
+            // On garde les schedules existants mais on met à jour le manuel
+            const newSchedules = { ...state.schedules };
+            for (let key in newEvents) {
+                if (!newSchedules[key]) newSchedules[key] = { manual: false, start: null, end: null };
+                newSchedules[key].manual = newEvents[key];
+            }
+            
+            socket.emit('admin_update_schedule', newSchedules);
         }
-        try { if (window.opener) { window.close(); return; } } catch(e){}
-        if (window.history.length > 1) { window.history.back(); }
-        else { window.location.href = 'index.html'; }
-    });
-})();;
 
- function requestCloseAdmin() {
-  if (window.parent !== window) {
-    // On est dans un iframe/overlay Mobile → on demande au parent de fermer
-    window.parent.postMessage({ cbAction: 'close_admin' }, '*');
-  } else {
-    // On est dans la popup PC → on ferme la fenêtre
-    window.close();
-  }
-}
-/* ============================================================
-ENTER KEY SUPPORT
-============================================================ */
-document.getElementById('admin-password-input').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') authAdmin();
-});
-</script>
+        function setSeason() {
+            const val = document.getElementById('season-override').value;
+            socket.emit('admin_set_season', val);
+        }
 
+        // --- MAINTENANCE ---
+        function saveMaintenance() {
+            const enabled = document.getElementById('maint-toggle').checked;
+            const message = document.getElementById('maint-msg').value;
+            const bypassCode = document.getElementById('maint-code').value;
+            socket.emit('admin_set_maintenance', { enabled, message, bypassCode });
+        }
+
+        // --- PLAYERS ---
+        function searchPlayer() {
+            const pseudo = document.getElementById('player-search').value.trim();
+            if (!pseudo) return showToast('Entrez un pseudo', 'error');
+            state.currentPlayer = pseudo;
+            document.getElementById('player-actions').style.display = 'block';
+            socket.emit('admin_get_logs', { username: pseudo });
+            showToast(`Chargement de ${pseudo}...`, 'info');
+        }
+
+        function giveGift() {
+            const currency = document.getElementById('gift-currency').value;
+            const amount = parseInt(document.getElementById('gift-amount').value);
+            socket.emit('admin_give_gift', { targetUsername: state.currentPlayer, currency, amount });
+        }
+
+        function adjustCurrency() {
+            const mode = document.getElementById('adj-mode').value;
+            const currency = document.getElementById('gift-currency').value;
+            const amount = parseInt(document.getElementById('gift-amount').value);
+            const count = parseInt(document.getElementById('adj-count').value);
+            if (mode === 'all' && !confirm(`Confirmer l'ajustement de ${amount} ${currency} pour TOUS les joueurs ?`)) return;
+            socket.emit('admin_adjust_currency', { mode, currency, amount, pseudo: state.currentPlayer, count });
+        }
+
+        function renderCatalogDropdowns() {
+            const itemSel = document.getElementById('give-item');
+            const trophySel = document.getElementById('give-trophy');
+            itemSel.innerHTML = '';
+            trophySel.innerHTML = '';
+
+            state.catalog.items.forEach(i => {
+                const opt = document.createElement('option');
+                opt.value = i.id;
+                opt.innerText = `${i.id} (${i.type})`;
+                itemSel.appendChild(opt);
+            });
+
+            state.catalog.trophies.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.innerText = t.name;
+                trophySel.appendChild(opt);
+            });
+        }
+
+        function giveCosmetic(kind) {
+            const itemId = document.getElementById(kind === 'item' ? 'give-item' : 'give-trophy').value;
+            socket.emit('admin_give_cosmetic', { username: state.currentPlayer, itemId, kind });
+        }
+
+        function saveAdventure() {
+            const data = {
+                username: state.currentPlayer,
+                lives: parseInt(document.getElementById('adv-lives').value) || 0,
+                jokersTime: parseInt(document.getElementById('adv-jt').value) || 0,
+                jokersShield: parseInt(document.getElementById('adv-js').value) || 0,
+                starsPerWorld: parseInt(document.getElementById('adv-stars').value) || 0,
+                maxFloor: parseInt(document.getElementById('adv-floor').value) || 0,
+                halloween: document.getElementById('adv-halloween').checked,
+                noel: document.getElementById('adv-noel').checked
+            };
+            socket.emit('admin_give_adventure', data);
+        }
+
+        function forceRefresh() {
+            socket.emit('admin_force_refresh', { username: state.currentPlayer });
+        }
+
+        function setRegion() {
+            const newRegion = document.getElementById('player-region').value;
+            socket.emit('admin_set_region', { targetUsername: state.currentPlayer, newRegion });
+        }
+
+        function resetPassword() {
+            const key = document.getElementById('recovery-key').value;
+            if (!key) return showToast('Clé requise', 'error');
+            socket.emit('admin_reset_password', { username: state.currentPlayer, recoveryKey: key });
+        }
+
+        function renderLogs() {
+            const tbody = document.getElementById('logs-body');
+            tbody.innerHTML = '';
+            // state.logs is populated via socket
+            window._logsData.forEach(log => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${log.action}</strong></td>
+                    <td>${log.detail || '-'}</td>
+                    <td>${log.amount ? (log.amount > 0 ? '+' : '') + log.amount + ' ' + (log.currency || '') : '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- SOCKET LISTENERS ---
+        socket.on('connect', () => console.log('Connecté au serveur'));
+        
+        socket.on('admin_auth_success', (data) => {
+            state.isAdmin = true;
+            state.events = data.events;
+            state.schedules = data.schedules;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'flex';
+            socket.emit('admin_get_catalog');
+            socket.emit('admin_get_maintenance');
+            socket.emit('admin_get_stats');
+            renderEvents();
+            showToast('Connexion Admin réussie !', 'success');
+        });
+
+        socket.on('admin_auth_fail', (msg) => {
+            document.getElementById('login-error').innerText = msg;
+            document.getElementById('login-error').style.display = 'block';
+        });
+
+        socket.on('admin_catalog', (catalog) => {
+            state.catalog = catalog;
+            renderCatalogDropdowns();
+        });
+
+        socket.on('maintenance_state', (data) => {
+            document.getElementById('maint-toggle').checked = data.enabled;
+            document.getElementById('maint-msg').value = data.message;
+            document.getElementById('maint-code').value = data.bypassCode;
+        });
+
+        socket.on('admin_stats', (data) => {
+            document.getElementById('online-count').innerText = data.online;
+        });
+
+        socket.on('admin_schedule_saved', () => showToast('Événements sauvegardés !', 'success'));
+        
+        socket.on('admin_logs_data', (data) => {
+            window._logsData = data.rows;
+            renderLogs();
+        });
+
+        // Result Handlers
+        const resultEvents = [
+            'admin_give_result', 'admin_adjust_result', 'admin_region_result', 
+            'admin_reset_result', 'admin_adv_result', 'admin_force_refresh_result', 
+            'admin_season_result'
+        ];
+        
+        resultEvents.forEach(evt => {
+            socket.on(evt, (res) => {
+                showToast(res.message, res.ok ? 'success' : 'error');
+                if (res.ok && evt === 'admin_reset_result' && res.newCode) {
+                    showToast(`Nouveau code: ${res.newCode}`, 'info');
+                }
+            });
+        });
+
+        // Enter key for login
+        document.getElementById('admin-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+        document.getElementById('player-search').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchPlayer();
+        });
+
+    </script>
 </body>
 </html>
