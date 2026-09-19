@@ -337,15 +337,27 @@ setInterval(() => {
 
 app.get('/', (req, res) => { res.send('Chiffre Blitz Server is running ⚡'); });
 
-// AJOUTE CES LIGNES :
 const path = require('path');
 
-app.get('/admin.html', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.sendFile(path.join(__dirname, 'admin.html'));
+// ✅ Sert la page du jeu au lieu du texte brut
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
+
+app.get('/admin.html', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+app.use(express.static(path.join(__dirname, '.'), {
+    setHeaders: (res, filePath) => {
+        if (/\.(html|js)$/.test(filePath)) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        }
+    }
+}));
 app.use(express.static(path.join(__dirname, '.'), {
   setHeaders: (res, filePath) => {
     if (/\.(html|js)$/.test(filePath)) {
@@ -409,7 +421,7 @@ if (sock && sock._kickAfterMatch && maintBlocked(sock)) {
 setTimeout(() => {
 sock.emit('maintenance_kick', { message: maintenanceState.message, afterMatch: true });
 sock.disconnect(true);
-}, 10000); // ⬅️ 10 s pour laisser voir le récap
+}, 120000); // ⬅️ 2 MINUTES pour laisser voir le récap
 }
 }
 function maintenanceKickAll(){ 
@@ -1640,34 +1652,42 @@ if (!socket.isAdmin) return;
 socket.emit('maintenance_state', { enabled:maintenanceState.enabled, message:maintenanceState.message, hasCode:!!maintenanceState.bypassCode, since:maintenanceState.since, online:getOnlineCount() });
 });
 socket.on('admin_set_maintenance', async (data) => {
-    if (!socket.isAdmin) return;
-    const want = !!(data && data.enabled);
-    const msg = String((data && data.message) || " ").trim() || "🔢 Maintenance en cours : on compte jusqu'à… bah non en fait, on répare ! Retour très vite 😉 ";
-    const code = String((data && data.bypassCode) || " ").trim();
+if (!socket.isAdmin) return;
+const want = !!(data && data.enabled);
+const msg = String((data && data.message) || " ").trim() || "🔢 Maintenance en cours : on compte jusqu'à… bah non en fait, on répare ! Retour très vite 😉 ";
+const code = String((data && data.bypassCode) || " ").trim();
+
+// ✅ CORRECTION : On récupère le délai envoyé par l'admin (data.delay)
+// Math.max(5, ...) empêche de mettre moins de 5 secondes.
+// Si l'admin n'envoie rien, on met 60 secondes par défaut.
+const delaySec = Math.max(5, parseInt(data && data.delay) || 60);
+
+if (want){
+    const first = !maintenanceState.enabled;
+    maintenanceState = { enabled:true, message:msg, bypassCode:code, since: first ? Date.now() : maintenanceState.since };
+    await saveMaintenance();
     
-    if (want){
-        const first = !maintenanceState.enabled;
-        maintenanceState = { enabled:true, message:msg, bypassCode:code, since: first ? Date.now() : maintenanceState.since };
-        await saveMaintenance();
-        
-        const delaySec = 10; // ⬅️ Délai de 10 secondes
-        maintenanceKickTime = Date.now() + (delaySec * 1000);
-        
-        for (const s of maintSockets()){ 
-            if (!isMaintBypass(s)) {
-                s.emit('maintenance_announce', { message:msg, delay: delaySec }); 
-            }
+    maintenanceKickTime = Date.now() + (delaySec * 1000);
+    
+    for (const s of maintSockets()){ 
+        if (!isMaintBypass(s)) {
+            // ✅ On envoie le VRAI délai au client pour la bannière
+            s.emit('maintenance_announce', { message:msg, delay: delaySec }); 
         }
-        if (maintenanceKickTimer) clearTimeout(maintenanceKickTimer);
-        maintenanceKickTimer = setTimeout(maintenanceKickAll, delaySec * 1000);
-    } else if (maintenanceState.enabled){
-        if (maintenanceKickTimer){ clearTimeout(maintenanceKickTimer); maintenanceKickTimer = null; }
-        maintenanceState = { enabled:false, message:msg, bypassCode:"", since:null };
-        maintenanceKickTime = 0; // ⬅️ Reset du temps
-        await saveMaintenance();
-        io.emit('maintenance_end', {});
     }
-    socket.emit('maintenance_state', { enabled:maintenanceState.enabled, message:maintenanceState.message, hasCode:!!maintenanceState.bypassCode, since:maintenanceState.since, online:getOnlineCount() });
+    
+    if (maintenanceKickTimer) clearTimeout(maintenanceKickTimer);
+    // ✅ On programme le kick avec le VRAI délai
+    maintenanceKickTimer = setTimeout(maintenanceKickAll, delaySec * 1000);
+    
+} else if (maintenanceState.enabled){
+    if (maintenanceKickTimer){ clearTimeout(maintenanceKickTimer); maintenanceKickTimer = null; }
+    maintenanceState = { enabled:false, message:msg, bypassCode:"", since:null };
+    maintenanceKickTime = 0;
+    await saveMaintenance();
+    io.emit('maintenance_end', {});
+}
+socket.emit('maintenance_state', { enabled:maintenanceState.enabled, message:maintenanceState.message, hasCode:!!maintenanceState.bypassCode, since:maintenanceState.since, online:getOnlineCount() });
 });
   socket.on('admin_get_stats', () => {
   if (!socket.isAdmin) return;
