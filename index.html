@@ -602,6 +602,19 @@ SCRIPTS (ordre de chargement important)
 ============================================================ -->
 <script>
 (function(){
+  function cbScale(){
+    // Référence = écran mobile type 480 x 900
+    var s = Math.min(window.innerWidth / 480, window.innerHeight / 900);
+    var z = Math.max(1, Math.min(2.2, s));   // 1 = mobile inchangé, max x2.2 sur grand écran
+    document.documentElement.style.zoom = z;
+  }
+  window.addEventListener('resize', cbScale);
+  window.addEventListener('orientationchange', cbScale);
+  cbScale();
+})();
+</script>
+<script>
+(function(){
   var v = "?v=" + Date.now();
   var files = ["i18n.js","audio.js","son-saisons.js","version.js","profil.js","admin.js","social.js","passe.js","saisons.js","fx.js","jeu.js","modes-catch.js","tour.js","mobile-menu.js","ads.js","iap.js"];
   for (var i = 0; i < files.length; i++) {
