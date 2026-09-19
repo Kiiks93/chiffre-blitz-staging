@@ -335,10 +335,7 @@ setInterval(() => {
   if (changed) io.emit("events_state_update", globalEvents);
 }, 5000);
 
-app.get('/', (req, res) => { res.send('Chiffre Blitz Server is running ⚡'); });
-
 const path = require('path');
-
 // ✅ Sert la page du jeu au lieu du texte brut
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
